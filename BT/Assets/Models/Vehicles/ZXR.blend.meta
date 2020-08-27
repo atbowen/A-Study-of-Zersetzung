@@ -1,0 +1,443 @@
+fileFormatVersion: 2
+guid: abe49802881c5fd48bf0e138fd3f5935
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: CRX_body_mirrors
+    100002: CRX_body_mirrors_001
+    100004: CRX_body_mirrors_002
+    100006: CRX_body_mirrors_003
+    100008: CRX_brake
+    100010: CRX_brake_001
+    100012: CRX_brake_002
+    100014: CRX_driver_door_000
+    100016: CRX_driver_door_001
+    100018: CRX_driver_door_ext_handle_000
+    100020: CRX_driver_door_ext_handle_001
+    100022: CRX_driver_door_int_handle_000
+    100024: CRX_driver_door_int_handle_001
+    100026: CRX_driver_door_int_lock_000
+    100028: CRX_driver_door_int_lock_001
+    100030: CRX_driver_door_mirror_control_000
+    100032: CRX_driver_door_mirror_control_001
+    100034: CRX_driver_door_window
+    100036: CRX_driver_door_window_001
+    100038: CRX_driver_door_window_control_000
+    100040: CRX_driver_door_window_control_001
+    100042: CRX_driver_seat
+    100044: CRX_driver_seat_back
+    100046: CRX_ebrake
+    100048: CRX_front_wheels
+    100050: CRX_front_wheels_001
+    100052: CRX_front_wheels_002
+    100054: CRX_front_wheels_003
+    100056: CRX_glove_compart
+    100058: CRX_glove_compart_handle
+    100060: CRX_hatch
+    100062: CRX_hatch_handle
+    100064: CRX_hatch_window
+    100066: CRX_pass_seat
+    100068: CRX_pass_seat_back
+    100070: CRX_radio_volume
+    100072: CRX_radio_volume_001
+    100074: CRX_rearview_mirror
+    100076: CRX_steeringwheel
+    100078: CRX_stickshift_base
+    100080: CRX_stickshift_shifter
+    100082: CRX_turn_signal
+    100084: CRX_underbody_and_int
+    100086: CRX_wiper_control
+    100088: //RootNode
+    400000: CRX_body_mirrors
+    400002: CRX_body_mirrors_001
+    400004: CRX_body_mirrors_002
+    400006: CRX_body_mirrors_003
+    400008: CRX_brake
+    400010: CRX_brake_001
+    400012: CRX_brake_002
+    400014: CRX_driver_door_000
+    400016: CRX_driver_door_001
+    400018: CRX_driver_door_ext_handle_000
+    400020: CRX_driver_door_ext_handle_001
+    400022: CRX_driver_door_int_handle_000
+    400024: CRX_driver_door_int_handle_001
+    400026: CRX_driver_door_int_lock_000
+    400028: CRX_driver_door_int_lock_001
+    400030: CRX_driver_door_mirror_control_000
+    400032: CRX_driver_door_mirror_control_001
+    400034: CRX_driver_door_window
+    400036: CRX_driver_door_window_001
+    400038: CRX_driver_door_window_control_000
+    400040: CRX_driver_door_window_control_001
+    400042: CRX_driver_seat
+    400044: CRX_driver_seat_back
+    400046: CRX_ebrake
+    400048: CRX_front_wheels
+    400050: CRX_front_wheels_001
+    400052: CRX_front_wheels_002
+    400054: CRX_front_wheels_003
+    400056: CRX_glove_compart
+    400058: CRX_glove_compart_handle
+    400060: CRX_hatch
+    400062: CRX_hatch_handle
+    400064: CRX_hatch_window
+    400066: CRX_pass_seat
+    400068: CRX_pass_seat_back
+    400070: CRX_radio_volume
+    400072: CRX_radio_volume_001
+    400074: CRX_rearview_mirror
+    400076: CRX_steeringwheel
+    400078: CRX_stickshift_base
+    400080: CRX_stickshift_shifter
+    400082: CRX_turn_signal
+    400084: CRX_underbody_and_int
+    400086: CRX_wiper_control
+    400088: //RootNode
+    2300000: CRX_body_mirrors
+    2300002: CRX_body_mirrors_001
+    2300004: CRX_body_mirrors_002
+    2300006: CRX_body_mirrors_003
+    2300008: CRX_brake
+    2300010: CRX_brake_001
+    2300012: CRX_brake_002
+    2300014: CRX_driver_door_000
+    2300016: CRX_driver_door_001
+    2300018: CRX_driver_door_ext_handle_000
+    2300020: CRX_driver_door_ext_handle_001
+    2300022: CRX_driver_door_int_handle_000
+    2300024: CRX_driver_door_int_handle_001
+    2300026: CRX_driver_door_int_lock_000
+    2300028: CRX_driver_door_int_lock_001
+    2300030: CRX_driver_door_mirror_control_000
+    2300032: CRX_driver_door_mirror_control_001
+    2300034: CRX_driver_door_window
+    2300036: CRX_driver_door_window_001
+    2300038: CRX_driver_door_window_control_000
+    2300040: CRX_driver_door_window_control_001
+    2300042: CRX_driver_seat
+    2300044: CRX_driver_seat_back
+    2300046: CRX_ebrake
+    2300048: CRX_front_wheels
+    2300050: CRX_front_wheels_001
+    2300052: CRX_front_wheels_002
+    2300054: CRX_front_wheels_003
+    2300056: CRX_glove_compart
+    2300058: CRX_glove_compart_handle
+    2300060: CRX_hatch
+    2300062: CRX_hatch_handle
+    2300064: CRX_hatch_window
+    2300066: CRX_pass_seat
+    2300068: CRX_pass_seat_back
+    2300070: CRX_radio_volume
+    2300072: CRX_radio_volume_001
+    2300074: CRX_rearview_mirror
+    2300076: CRX_steeringwheel
+    2300078: CRX_stickshift_base
+    2300080: CRX_stickshift_shifter
+    2300082: CRX_turn_signal
+    2300084: CRX_underbody_and_int
+    2300086: CRX_wiper_control
+    2300088: //RootNode
+    3300000: CRX_body_mirrors
+    3300002: CRX_body_mirrors_001
+    3300004: CRX_body_mirrors_002
+    3300006: CRX_body_mirrors_003
+    3300008: CRX_brake
+    3300010: CRX_brake_001
+    3300012: CRX_brake_002
+    3300014: CRX_driver_door_000
+    3300016: CRX_driver_door_001
+    3300018: CRX_driver_door_ext_handle_000
+    3300020: CRX_driver_door_ext_handle_001
+    3300022: CRX_driver_door_int_handle_000
+    3300024: CRX_driver_door_int_handle_001
+    3300026: CRX_driver_door_int_lock_000
+    3300028: CRX_driver_door_int_lock_001
+    3300030: CRX_driver_door_mirror_control_000
+    3300032: CRX_driver_door_mirror_control_001
+    3300034: CRX_driver_door_window
+    3300036: CRX_driver_door_window_001
+    3300038: CRX_driver_door_window_control_000
+    3300040: CRX_driver_door_window_control_001
+    3300042: CRX_driver_seat
+    3300044: CRX_driver_seat_back
+    3300046: CRX_ebrake
+    3300048: CRX_front_wheels
+    3300050: CRX_front_wheels_001
+    3300052: CRX_front_wheels_002
+    3300054: CRX_front_wheels_003
+    3300056: CRX_glove_compart
+    3300058: CRX_glove_compart_handle
+    3300060: CRX_hatch
+    3300062: CRX_hatch_handle
+    3300064: CRX_hatch_window
+    3300066: CRX_pass_seat
+    3300068: CRX_pass_seat_back
+    3300070: CRX_radio_volume
+    3300072: CRX_radio_volume_001
+    3300074: CRX_rearview_mirror
+    3300076: CRX_steeringwheel
+    3300078: CRX_stickshift_base
+    3300080: CRX_stickshift_shifter
+    3300082: CRX_turn_signal
+    3300084: CRX_underbody_and_int
+    3300086: CRX_wiper_control
+    3300088: //RootNode
+    4300000: CRX
+    4300002: CRX_body_mirrors_001
+    4300004: CRX_body_mirrors_002
+    4300006: CRX_body_mirrors_003
+    4300008: CRX_body_mirrors
+    4300010: CRX_brake_001
+    4300012: CRX_brake_002
+    4300014: CRX_brake
+    4300016: CRX_driver_door_000
+    4300018: CRX_driver_door_ext_handle_000
+    4300020: CRX_driver_door_int_handle_000
+    4300022: CRX_driver_door_int_lock_000
+    4300024: CRX_driver_door_mirror_control_000
+    4300026: CRX_driver_door_window
+    4300028: CRX_driver_door_window_control_000
+    4300030: CRX_driver_door_001
+    4300032: CRX_driver_door_ext_handle_001
+    4300034: CRX_driver_door_int_handle_001
+    4300036: CRX_driver_door_int_lock_001
+    4300038: CRX_driver_door_mirror_control_001
+    4300040: CRX_driver_door_window_001
+    4300042: CRX_driver_door_window_control_001
+    4300044: CRX_driver_seat
+    4300046: CRX_driver_seat_back
+    4300048: CRX_ebrake
+    4300050: CRX_front_wheels_001
+    4300052: CRX_front_wheels_002
+    4300054: CRX_front_wheels_003
+    4300056: CRX_front_wheels
+    4300058: CRX_glove_compart
+    4300060: CRX_glove_compart_handle
+    4300062: CRX_hatch
+    4300064: CRX_hatch_handle
+    4300066: CRX_hatch_window
+    4300068: CRX_pass_seat
+    4300070: CRX_pass_seat_back
+    4300072: CRX_radio_volume_001
+    4300074: CRX_radio_volume
+    4300076: CRX_rearview_mirror
+    4300078: CRX_steeringwheel
+    4300080: CRX_stickshift_base
+    4300082: CRX_stickshift_shifter
+    4300084: CRX_turn_signal
+    4300086: CRX_underbody_and_int
+    4300088: CRX_wiper_control
+    7400000: Default Take
+    9500000: //RootNode
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_body_done_png_002
+    second: {fileID: 2100000, guid: b43c988b353200d4cbda2838ba9fd82d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_brake_pedal_done_png_001
+    second: {fileID: 2100000, guid: d0c03bfeb80146147b48ca8d7e3d4f98, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_door_done_png_001
+    second: {fileID: 2100000, guid: e87ea7ca40b8c91419e9da01c874cfbe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_door_ext_handle_done_png_001
+    second: {fileID: 2100000, guid: 2b9b12bbe25bf9740936882400af5376, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_door_ext_handle_png
+    second: {fileID: 2100000, guid: 1a2964d09af3c47478e27681dcf5ba20, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_door_int_handle_done_png_001
+    second: {fileID: 2100000, guid: 96194f90b116c434da170e1aa768a475, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_door_lock_button_done_png_002
+    second: {fileID: 2100000, guid: 95fd398a46e0a47468084f2a1686f343, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_door_window_control_done_png
+    second: {fileID: 2100000, guid: 46f5b63ad077c2e43bf63e546ec90839, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_driver_window_done_png_001
+    second: {fileID: 2100000, guid: b6ae6d8d35071dd478dec0fc5209f62d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_ebrake_done_png_001
+    second: {fileID: 2100000, guid: dabc599ac90758b4fb07327d63efc50d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_glove_compt_done_png_001
+    second: {fileID: 2100000, guid: 83c436f0608f6034eb82f4217d2b238f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_hatch_done_png_001
+    second: {fileID: 2100000, guid: f740eacbae9bf9040911ff81bec6c825, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_interior_done_png_001
+    second: {fileID: 2100000, guid: 6b52c1464d911944ebfb598f15c1b119, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_rearview_mirror_actual_mirror_part_done_png_001
+    second: {fileID: 2100000, guid: eb0e2d700db0fdf419f528a30e6bf78f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_rearview_mirror_done_png_001
+    second: {fileID: 2100000, guid: c1c8e1365b3b9904c928fb9e55227632, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_seat_bottom_done_png
+    second: {fileID: 2100000, guid: d8693654a09fc5d43b6fb72a28642f77, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_seat_mesh_done_png_001
+    second: {fileID: 2100000, guid: dda6a78b033598c4caef9e7d92bec9de, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_side_mirror_control_done_png_001
+    second: {fileID: 2100000, guid: a366a15da3f38e444bc34a6d1d42c074, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_steering_wheel_done_png_001
+    second: {fileID: 2100000, guid: c2eb6e49edb66534485ad875c5ad826d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_stereo_knob_done_png
+    second: {fileID: 2100000, guid: 4407fab1f95d1484da4c8f2f334c90d1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_stick_base_mesh_done_png_001
+    second: {fileID: 2100000, guid: c9b8887635a3a994a9809cb6d07e4f01, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_stick_mesh_done_png_001
+    second: {fileID: 2100000, guid: d69067e16fce55c43b2d7edd1afee7e4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_turn_signal_done_png_001
+    second: {fileID: 2100000, guid: b9832e87922a5b647adddf4912c66b74, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_wheel_done_png_001
+    second: {fileID: 2100000, guid: 71b54a42ccf3b2e4fb09e9f7edf5c906, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: None__ZXR_wiper_control_done_png_001
+    second: {fileID: 2100000, guid: b94e291ada1145a4faacf01240eb8efb, type: 2}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 10
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 0
+    importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 10
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 1
+    tangentImportMode: 3
+    normalCalculationMode: 0
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 1
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

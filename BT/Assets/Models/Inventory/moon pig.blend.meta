@@ -1,0 +1,155 @@
+fileFormatVersion: 2
+guid: add138255331c7d4781357d82b2b9cef
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: ankle_l
+    100002: ankle_r
+    100004: body
+    100006: foot_l
+    100008: foot_r
+    100010: hand_l
+    100012: hand_r
+    100014: lowerarm_l
+    100016: lowerarm_r
+    100018: lowerleg_l
+    100020: lowerleg_r
+    100022: //RootNode
+    100024: moon_pig
+    100026: moon_pig_armature
+    100028: nose1
+    100030: nose2
+    100032: nosecontrol
+    100034: tail1
+    100036: tail2
+    100038: tail3
+    100040: tail4
+    100042: tailcontrol
+    100044: upperarm_l
+    100046: upperarm_r
+    100048: upperleg_l
+    100050: upperleg_r
+    100052: wrist_l
+    100054: wrist_r
+    400000: ankle_l
+    400002: ankle_r
+    400004: body
+    400006: foot_l
+    400008: foot_r
+    400010: hand_l
+    400012: hand_r
+    400014: lowerarm_l
+    400016: lowerarm_r
+    400018: lowerleg_l
+    400020: lowerleg_r
+    400022: //RootNode
+    400024: moon_pig
+    400026: moon_pig_armature
+    400028: nose1
+    400030: nose2
+    400032: nosecontrol
+    400034: tail1
+    400036: tail2
+    400038: tail3
+    400040: tail4
+    400042: tailcontrol
+    400044: upperarm_l
+    400046: upperarm_r
+    400048: upperleg_l
+    400050: upperleg_r
+    400052: wrist_l
+    400054: wrist_r
+    2100000: None__moon_pig_done_png
+    4300000: moon_pig
+    7400000: Default Take
+    7400002: eat
+    7400004: good_walk
+    7400006: wave
+    9500000: //RootNode
+    13700000: moon_pig
+  externalObjects: {}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 10
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 1
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 118
+    normalImportMode: 1
+    tangentImportMode: 3
+    normalCalculationMode: 0
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

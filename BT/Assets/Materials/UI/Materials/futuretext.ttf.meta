@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: eac4793be2f05ef4f9212b579c79c78e
+timeCreated: 1542627829
+licenseType: Pro
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: FutureText
+  fontNames:
+  - FutureText
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

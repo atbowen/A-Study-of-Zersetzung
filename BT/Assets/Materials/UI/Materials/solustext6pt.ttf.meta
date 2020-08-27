@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 1e0d09fef8917074eab657b8067f5588
+timeCreated: 1544307822
+licenseType: Pro
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: SolusText6pt
+  fontNames:
+  - SolusText6pt
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

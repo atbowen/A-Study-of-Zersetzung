@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: d60e6c0912674d64a9c879c0119b13c3
+timeCreated: 1542665782
+licenseType: Pro
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: FutureText6pt
+  fontNames:
+  - FutureText6pt
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
