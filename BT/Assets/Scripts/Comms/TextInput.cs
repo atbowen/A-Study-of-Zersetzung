@@ -60,7 +60,7 @@ public class TextInput : MonoBehaviour {
 
         if (inputIsEmpty) {
             if (controller.IsCommsTextUnravelled() && commsNav.currentLine.continues) { commsNav.ContinueLine(commsNav.currentLine); } 
-            else { controller.SkipUnravellingText(); }
+            else { controller.SkipUnravelling(); }
         }
         if (foundResponse) { controller.AssembleAndDisplayCommsText(); }
         //controller.AssembleAndDisplayCommsText();

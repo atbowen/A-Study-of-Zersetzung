@@ -10,12 +10,27 @@ public class CameraMaster : MonoBehaviour {
     public RawImage pauseScreen;
 
     // Head, HUD, and camera stuff
-    public RenderTexture staticView, loadingView, leftEyeRT, rightEyeRT, headdActualRT, headdRefRT;
+    public RenderTexture staticView, loadingView, leftEyeRT, rightEyeRT, headdActualRT, headdRefRT, blackAndWhiteRT;
     public RawImage mainOverlay, topRightInsert, bothEyesScreen, hallucinationScreen;                                        // mainOverlay image is for full screen projections; insert is for picture-in-a-picture
     public Texture[] hallucinationFrames;
     public RawImage hallucinatingTextBgd;
+    public List<RawImage> gardenOverlays;
+    public List<Camera> gardenOverlayCameras;
+    public RawImage vawnTripOverlay;
+    public Camera vawnTripCamera;
+
+    // RawImages, etc. whose alphas need to be adjusted for the Garden overlays
+    [SerializeField]
+    public List<ImageAndAlpha> imagesWithDependentAlpha;
+    public float alphaScalarForGardenOverlays;
+
     public Text hallucinatingText;
     public float hallucinationFrameTime, hallucinationScreenAlphaDecrement;
+    public float gardenOverlayFOVShiftMinTime, gardenOverlayFOVShiftMaxTime, gardenOverlayFOVShiftMin, gardenOverlayFOVShiftMax, gardenaCamFOVProximityThreshold, gardenCamFOVShiftRate;
+    public float vawnTripRotRandMin, vawnTripRotRandMax, vawnTripRotTimeRandMin, vawnTripRotTimeRandMax, vawnTripRotRate,
+                vawnTripFOVStretchRandMin, vawnTripFOVStretchRandMax, vawnTripFOVStretchTimeRandMin, vawnTripFOVStretchTimeRandMax, vawnTripFOVStretchRate,
+                vawnTripSecondPulseTime, vawnTripThirdPulseTime;
+    public AudioClip heartbeatSound;
     public Camera bodyCamera;
     public Transform headActual, headNoBob;
     public Transform headObjectHavingMesh;
@@ -23,7 +38,7 @@ public class CameraMaster : MonoBehaviour {
     public bool leftEyeLodged, rightEyeLodged;                                                          // Checks for eyes in place
     public bool rightEyeAbilitiesAvailable, reticleEnabled;
 
-    public bool jammed, hallucinating;
+    public bool jammed, hallucinating, showGardenOverlays;
 
     public bool toolSelectorOpen;
 
@@ -37,10 +52,21 @@ public class CameraMaster : MonoBehaviour {
 
     // Public use timers
     public bool leftEyeAvailable;
+    public float commsWindowSpecialOptionsButtonHoldTime, commsWindowButtonHoldRefTime;
     public float keyTimer, keyTimerRef;
     public bool triggerPressed;
 
-    // Look at all of this crap vvv  This game is going to be great.
+    // Eye effects
+    public AudioClip rightEyeDislodgeSound, rightEyeLodgeSound;
+    public RawImage rightEyeGridlinesBgd;
+    public List<Texture> eyeDislodgeGridlineFrames;
+    public float eyeGridlinesFrameSpeed;
+    public int numberOfShutterFramesBeforeGridlines;
+
+    // Eye light effects
+    public AudioClip rightEyeLightSwitchOn, rightEyeLightSwitchOff;
+
+    // Look at all of this crap vvv  This game is going to be great. :) Love this comment.  It's 10.4.2020, game's been in dev for 5 years and still loving it.  We're gonna finish this!
     private BodyCam view;
     private Teddy ted;
     private TeddyHead tedHead;
@@ -60,6 +86,8 @@ public class CameraMaster : MonoBehaviour {
     private RawImage commsImg;
     private StatusPopup statusWindow;
 
+    private AudioSource rightEyeAudio;
+
     private enum ViewStates { Other, BodyRightEyeIn, BodyRightEyeOut, RightEye, RightEyeDislodging, RightEyeLodging }
     private ViewStates CamState;
 
@@ -76,8 +104,21 @@ public class CameraMaster : MonoBehaviour {
     private bool hallucinatingUnscrambledText;
 
     private float reticlePressTime;
-    private bool reticlePressed, reticleHidden;
-    private float eyeDislodgeTimer, eyeDislodgeTimerRef;
+    private bool reticleReleased, reticleHidden;
+
+    private bool showingEyeGridlines;
+    private float eyeGridlinesStartTimeRef;
+    private int currentEyeGridlineFrame;
+
+    private float gardenOverlayFOVShiftRefTime, gardenOverlayFOVShiftRandomTime;
+
+    private float vawnTripRandRot, vawnTripRotRefTime, vawnTripRotRandTime,
+                vawnTripRandFOVStretch, vawnTripFOVStretchRefTime, vawnTripFOVStretchRandTime, vawnTripCurrentTargetFOV;
+    private bool vawnTripIsRotNeg, vawnTripIsRotPos, vawnTripIsStretchNeg, vawnTripIsStretchPos, vawnTripNegRotFirst, vawnTripNegFOVStretchFirst;
+    private float[] vawnTripPulseTimes = new float[3];
+    private int currentvawnTripPulseNumber;
+
+    private bool commsSpecialOptionsMenuOpened;
 
     // Use this for initialization
     void Start () {
@@ -93,6 +134,8 @@ public class CameraMaster : MonoBehaviour {
         rightEyeColl = rightEye.GetComponent<Collider>();
         rightEyeRigid = rightEye.GetComponent<Rigidbody>();
         leftEye = FindObjectOfType<TeddyLeftEye>();
+
+        rightEyeAudio = rightEye.GetComponent<AudioSource>();
 
         // Do I need these???
         headdRT = headdActualRT;
@@ -116,6 +159,10 @@ public class CameraMaster : MonoBehaviour {
         mainOverlay.enabled = false;
         topRightInsert.enabled = false;
 
+        // Hallucination bgd and eye gridlines off at start
+        hallucinationScreen.enabled = false;
+        rightEyeGridlinesBgd.enabled = false;
+
         // No right eye collision to start
         RightEyeCollisions(false);
 
@@ -126,10 +173,29 @@ public class CameraMaster : MonoBehaviour {
         // Jamming overlay (not jammed by default)
         jammed = false;                                                                                 
         currentJamFrameIndex = 0;                                                                       
-        jamFrameTimeIndex = 0;                                                                          
+        jamFrameTimeIndex = 0;
+
+        // Better hallucination/Garden effect than below
+        showGardenOverlays = false;
+        gardenOverlayFOVShiftRefTime = Time.time;
+        gardenOverlayFOVShiftRandomTime = Random.Range(gardenOverlayFOVShiftMinTime, gardenOverlayFOVShiftMaxTime);
+
+        if (imagesWithDependentAlpha.Count > 0) {
+            foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
+                img.IntializeOriginalAlpha();
+                Debug.Log(img.image.color.a + ", " + img.GetOriginalAlpha());
+            }
+        }
 
         // Hallucination settings and text (not hallucinating by default)
-        hallucinating = false;                                                                          
+        hallucinating = false;
+        vawnTripOverlay.enabled = false;
+        if (vawnTripFOVStretchTimeRandMin != 0 && vawnTripFOVStretchTimeRandMax != 0 && vawnTripSecondPulseTime != 0 && vawnTripThirdPulseTime != 0) {
+            vawnTripPulseTimes[0] = Random.Range(vawnTripFOVStretchTimeRandMin, vawnTripFOVStretchTimeRandMax);
+            vawnTripPulseTimes[1] = vawnTripSecondPulseTime;
+            vawnTripPulseTimes[2] = vawnTripThirdPulseTime;
+        }
+
         hallucinatingUnscrambledText = false;
         currentHallucinationFrameIndex = 0;                                                             
         hallucinationFrameTimeIndex = 0;                                                                
@@ -149,12 +215,16 @@ public class CameraMaster : MonoBehaviour {
         toolSelectorOpen = false;
 
         // Keypress timers
-        eyeDislodgeTimer = 0.2f;
-        eyeDislodgeTimerRef = 0;
         reticlePressTime = 0;
-        reticlePressed = false;
+        reticleReleased = false;
+        eyeGridlinesStartTimeRef = 0;
+        showingEyeGridlines = false;
+        currentEyeGridlineFrame = 0;
+
         //keyTimer = 0.1f;
         keyTimerRef = 0;
+
+        commsSpecialOptionsMenuOpened = false;
 
         // Establish reference positions and rotations
         initialPosBody = view.transform.localPosition;
@@ -177,40 +247,80 @@ public class CameraMaster : MonoBehaviour {
 
         // Every current possible state:
         // Controlling body with/without right eye, right eye lodging/dislodging, controlling right eye (and "other" state)
-        switch (CamState) {
-            case ViewStates.Other:
-                break;
-            case ViewStates.BodyRightEyeIn:
-                if (!view.Using()) {
-                    if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer) && !commsEnabled) {
-                        view.InitiateUseActionWithAnimationTrigger("Take out eye", 1, false);
-                        CamState = ViewStates.RightEyeDislodging;
+        if (!gamePaused) {
+            switch (CamState) {
+                case ViewStates.Other:
+                    break;
+                case ViewStates.BodyRightEyeIn:
+                    if (showingEyeGridlines) {
+                        if (Time.time - eyeGridlinesStartTimeRef > eyeGridlinesFrameSpeed) {
+                            if (currentEyeGridlineFrame < numberOfShutterFramesBeforeGridlines - 2) {
+                                currentEyeGridlineFrame++;
+                                rightEyeGridlinesBgd.texture = eyeDislodgeGridlineFrames[currentEyeGridlineFrame];
+
+                                eyeGridlinesStartTimeRef = Time.time;
+                            }
+                            else {
+                                showingEyeGridlines = false;
+                                rightEyeGridlinesBgd.enabled = false;
+                            }
+                        }
                     }
-                }
-                break;
-            case ViewStates.BodyRightEyeOut:
-                if (!view.Using()) {
-                    if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer)
-                            && (headd.transform.position - rightEye.transform.position).magnitude < 20 && !commsEnabled) {
-                        view.InitiateUseActionWithAnimationTrigger("Take out eye", 1, false);
-                        CamState = ViewStates.RightEyeLodging;
+
+                    if (!view.Using()) {
+                        if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer) && !commsEnabled) {
+                            view.InitiateUseActionWithAnimationTrigger("Take out eye", 1, false);
+                            CamState = ViewStates.RightEyeDislodging;
+                        }
                     }
-                }
-                break;
-            case ViewStates.RightEye:
-                break;
-            case ViewStates.RightEyeDislodging:
-                if (view.GetUseFreezeTimeRemaining() < 0.6f) {
-                    DislodgeRightEye();
-                    CamState = ViewStates.BodyRightEyeOut;
-                }
-                break;
-            case ViewStates.RightEyeLodging:
-                if (view.GetUseFreezeTimeRemaining() < 0.8f) {
-                    LodgeRightEye();
-                    CamState = ViewStates.BodyRightEyeIn;
-                }
-                break;
+                    break;
+                case ViewStates.BodyRightEyeOut:
+                    if (showingEyeGridlines) {
+                        if (Time.time - eyeGridlinesStartTimeRef > eyeGridlinesFrameSpeed) {
+                            if (currentEyeGridlineFrame < eyeDislodgeGridlineFrames.Count - 1) {
+                                currentEyeGridlineFrame++;
+                                rightEyeGridlinesBgd.texture = eyeDislodgeGridlineFrames[currentEyeGridlineFrame];
+                                Color newColor = rightEyeGridlinesBgd.color;
+                                newColor.a = rightEyeGridlinesBgd.color.a - (hallucinationScreenAlphaDecrement * 0.5f * rightEyeGridlinesBgd.color.a);
+                                if (rightEyeGridlinesBgd.color.a > 0.2f && currentEyeGridlineFrame > numberOfShutterFramesBeforeGridlines - 1) {
+                                    rightEyeGridlinesBgd.color = newColor;
+                                }
+
+                                eyeGridlinesStartTimeRef = Time.time;
+                            }
+                            else {
+                                showingEyeGridlines = false;
+                                rightEyeGridlinesBgd.enabled = false;
+                            }
+                        }
+                    }
+
+                    if (!view.Using()) {
+                        if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer)
+                                && (headd.transform.position - rightEye.transform.position).magnitude < 20 && !commsEnabled) {
+                            showingEyeGridlines = false;
+                            rightEyeGridlinesBgd.enabled = false;
+
+                            view.InitiateUseActionWithAnimationTrigger("Take out eye", 1, false);
+                            CamState = ViewStates.RightEyeLodging;
+                        }
+                    }
+                    break;
+                case ViewStates.RightEye:
+                    break;
+                case ViewStates.RightEyeDislodging:
+                    if (view.GetUseFreezeTimeRemaining() < 0.6f) {
+                        DislodgeRightEye();
+                        CamState = ViewStates.BodyRightEyeOut;
+                    }
+                    break;
+                case ViewStates.RightEyeLodging:
+                    if (view.GetUseFreezeTimeRemaining() < 0.8f) {
+                        LodgeRightEye();
+                        CamState = ViewStates.BodyRightEyeIn;
+                    }
+                    break;
+            }
         }
         
         // Check for pause status
@@ -230,49 +340,109 @@ public class CameraMaster : MonoBehaviour {
 
         // When game isn't paused
         if (!gamePaused) {
-            
+
             // Toggle comms
-            if ((Input.GetButton("Square Button")) && Time.time - keyTimerRef > keyTimer && !triggerPressed) {
-                commsControl.textActivated = !commsControl.textActivated;
+            if ((Input.GetButtonDown("Square Button")) && Time.time - keyTimerRef > keyTimer && !triggerPressed) {
                 commsEnabled = !commsEnabled;
-                if (commsEnabled) { view.SwitchAnimationStateToIdle(); }
+                if (commsEnabled) {
+                    view.SwitchAnimationStateToIdle();
+                    commsControl.OpenCommsWindow();
+                }
+                else {
+                    commsControl.textActivated = false;
+                    commsControl.ClearCommsWindow();
+                }
+
+                commsWindowButtonHoldRefTime = Time.time;
                 keyTimerRef = Time.time;                                                                                       
             }
+
+            if (Input.GetButton("Square Button") && (Time.time - commsWindowButtonHoldRefTime > commsWindowSpecialOptionsButtonHoldTime) && commsEnabled) {
+                if (!commsSpecialOptionsMenuOpened) {
+                    commsControl.OpenSpecialOptionsMenu();
+                    commsSpecialOptionsMenuOpened = true;
+                } else {
+                    if ((Input.GetAxis("D-Pad Left Right") > 0) && Time.time - keyTimerRef > keyTimer) {
+                        commsControl.HighlightNextSpecialOption();
+                        keyTimerRef = Time.time;
+                    }
+                    if ((Input.GetAxis("D-Pad Left Right") < 0) && Time.time - keyTimerRef > keyTimer) {
+                        commsControl.HighlightPreviousSpecialOption();
+                        keyTimerRef = Time.time;
+                    }
+
+                    if (Input.GetAxis("Triggers") > 0.1 && (Time.time - keyTimerRef > keyTimer)) {
+                        commsControl.SelectSpecialOption();
+                        keyTimerRef = Time.time;
+                    }
+                }
+            }
+
+            if (Input.GetButtonUp("Square Button") && commsEnabled) {
+                if (!commsControl.textActivated) {
+
+                    if (Time.time - commsWindowButtonHoldRefTime > commsWindowSpecialOptionsButtonHoldTime) {
+                        //commsControl.OpenSpecialOptionsMenu();
+                        commsControl.ClearCommsWindow();
+                        commsEnabled = false;
+                    }
+                    else {
+                        commsControl.ClearCommsWindow();
+                        commsControl.textActivated = true;
+                    }
+                }
+                commsSpecialOptionsMenuOpened = false;
+                keyTimerRef = Time.time;
+            }
+
+            // Check if hallucinating
+            WhatToDoIfHallucinating();
 
             // When comms aren't up
             if (!commsEnabled) {
 
-                if ((rightEye.rightEyeActive || (rightEyeLodged && view.bodyControl)) && Input.GetButtonDown("Triangle Button") && !gamePaused && !commsEnabled
-                            && (Time.time - reticlePressTime > 0.5)) {                                                                          //      Light toggle (C)
+                if ((rightEye.rightEyeActive || (rightEyeLodged && view.bodyControl)) && Input.GetButtonDown("Triangle Button") &&
+                            (Time.time - reticlePressTime > 0.5)) {                                                                          //      Light toggle (C)
+                    if (rightEye.rightLight.enabled)    { rightEyeAudio.PlayOneShot(rightEyeLightSwitchOn); }
+                    else                                { rightEyeAudio.PlayOneShot(rightEyeLightSwitchOff); }
                     rightEye.rightLight.enabled = !rightEye.rightLight.enabled;
                     reticlePressTime = Time.time;
                 }
 
-                if (view.bodyControl && view.bodyCamActive && ((Input.GetButton("Left Bumper")) || Input.GetKey(KeyCode.Mouse1))) {
+                if (view.bodyControl && view.bodyCamActive && !view.InVehicle() && ((Input.GetButton("Left Bumper")) || Input.GetKey(KeyCode.Mouse1))) {
                     toolSelectorOpen = true;
                     toolSelect.toolSelectorOpen = true;
 
-                    statusWindow.FlashStatusText("Tool  Selector  open.");
+                    //statusWindow.FlashStatusText("Tool  Selector  open.");
                 } else {
                     toolSelectorOpen = false;
                     toolSelect.toolSelectorOpen = false;
                 }
                 
-                // Check if hallucinating
-                WhatToDoIfHallucinating();
+                if (view.bodyControl && view.bodyCamActive && Input.GetButtonDown("Right Bumper") && Time.time - keyTimerRef > keyTimer) {
+                    hallucinating = !hallucinating;
+                    keyTimerRef = Time.time;
+
+                    InitializeVawnTripRotVariables();
+                    InitializeVawnTripStretchVariables();
+                }
+
+                
 
                 if (((Time.time - reticlePressTime > 0.5) && ((Input.GetAxis("D-Pad Left Right") > 0)) ||       // Toggle hallucinations on and off
                         ((Time.time - reticlePressTime > 0.1) && Input.GetButtonDown("Hallucinations")))) {     //                                                     
 
-                    hallucinating = !hallucinating;                                                             //
+                    //hallucinating = !hallucinating;                                                             //
                     hallucinationFrameTimeIndex = Time.time;                                                    //
                     reticlePressTime = Time.time;                                                               //
+
+                    showGardenOverlays = !showGardenOverlays;
                 }                                                                                               //
 
                 // Check if right eye abilities are available
                 CheckIfRightEyePowersAreAvailable();
 
-                if (!reticleHidden && ((Time.time - reticlePressTime > 0.5) && ((Input.GetAxis("D-Pad Left Right") < 0)) ||       // Toggle reticle on and off (if right eye powers are available)
+                if (!reticleHidden && !view.IsHoldingDocument() && ((Time.time - reticlePressTime > 0.5) && ((Input.GetAxis("D-Pad Left Right") < 0)) ||       // Toggle reticle on and off (if right eye powers are available)
                     ((Time.time - reticlePressTime > 0.1) && Input.GetButtonDown("Reticle")))) {                //
                     ToggleReticle();                                                                            //
                     reticlePressTime = Time.time;                                                               //
@@ -421,6 +591,39 @@ public class CameraMaster : MonoBehaviour {
                                                                                                             //
                     commsEnter.textComponent.text = "";                                                     //
                     englishOrSolar = !englishOrSolar;                                                       //
+                }                
+
+                if (commsControl.ReadyForSelection()) {
+                    // Move response selector up, can hold button to scroll
+                    if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") > 0)) ||
+                            (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") > 0))) {
+                        reticleReleased = false;
+                        commsControl.MoveResponseSelectorBarUp();
+                        reticlePressTime = Time.time;
+                    }
+
+                    // Move response selector down, can hold button to scroll
+                    if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") < 0)) ||
+                            (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") < 0))) {
+                        reticleReleased = false;
+                        commsControl.MoveResponseSelectorBarDown();
+                        reticlePressTime = Time.time;
+                    }
+
+                    // If the axis values are low enough, the reticle button is released and can be pressed again
+                    if (Mathf.Abs(Input.GetAxis("D-Pad Up Down")) < 0.001f && Mathf.Abs(Input.GetAxis("Vertical")) < 0.001f) {
+                        reticleReleased = true;
+                    }
+
+                    if (Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
+                        commsControl.SelectResponse();
+                        keyTimerRef = Time.time;
+                    }
+                }
+
+                // Show full Prompt text before it's fully unravelled by hitting the button
+                if (commsControl.CanSkipUnravelling() && Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
+                    commsControl.SkipUnravelling();
                 }
             }
         }
@@ -501,6 +704,19 @@ public class CameraMaster : MonoBehaviour {
         view.curRotX = 0;                                                                       // Zero calculation of main camera's verticle rotation
         RightEyeCollisions(true);                                                               // Enable right eye collider                        
         keyTimerRef = Time.time;
+
+        // Play the cool dislodging sound
+        rightEyeAudio.PlayOneShot(rightEyeDislodgeSound);
+
+        // Initiate shutter and eye gridline frames
+        showingEyeGridlines = true;
+        currentEyeGridlineFrame = 0;
+        eyeGridlinesStartTimeRef = Time.time;
+        Color newColor = rightEyeGridlinesBgd.color;
+        newColor.a = 1;
+        rightEyeGridlinesBgd.color = newColor;
+        rightEyeGridlinesBgd.texture = eyeDislodgeGridlineFrames[currentEyeGridlineFrame];
+        rightEyeGridlinesBgd.enabled = true;
     }
 
     // Lodge right eye
@@ -526,13 +742,26 @@ public class CameraMaster : MonoBehaviour {
 
         if (leftEyeLodged) {
             leftEye.transform.localRotation = returnRotLeft;
-        }       
+        }
+
+        // Play the cool lodging sound
+        rightEyeAudio.PlayOneShot(rightEyeLodgeSound);
+
+        // Initiate shutter frames
+        showingEyeGridlines = true;
+        currentEyeGridlineFrame = 0;
+        eyeGridlinesStartTimeRef = Time.time;
+        Color newColor = rightEyeGridlinesBgd.color;
+        newColor.a = 1;
+        rightEyeGridlinesBgd.color = newColor;
+        rightEyeGridlinesBgd.texture = eyeDislodgeGridlineFrames[currentEyeGridlineFrame];
+        rightEyeGridlinesBgd.enabled = true;
     }
 
     // Switch perspective by making main camera a child of target object; initialize orientation
     public void SwitchCam(Transform cam, Transform target, Vector3 finalPos, Quaternion finalRot) {
-        cam.parent = null;                                                                              // De-parent
-        cam.parent = target;                                                                            // Make child of target
+        //cam.parent.SetParent(null, false);                                                                              // De-parent
+        cam.SetParent(target, false);                                                                            // Make child of target
 
         cam.localPosition = finalPos;                                                                   // Initialize position
         cam.localRotation = finalRot;                                                                   // Initialize rotation
@@ -562,35 +791,204 @@ public class CameraMaster : MonoBehaviour {
 
 
     private void WhatToDoIfHallucinating() {                                                                                    // If hallucinating, show camera effect
-        if (hallucinating) {                                                                                                    //
-            hallucinationScreen.enabled = true;                                                                                 //
-            hallucinatingText.enabled = true;
-            hallucinatingTextBgd.enabled = true;
-            
-            hallucinationScreen.texture = hallucinationFrames[currentHallucinationFrameIndex];                                  //
-                                                                                                                                //
-            if ((Time.time - hallucinationFrameTimeIndex) > hallucinationFrameTime) {                                                              //
-                currentHallucinationFrameIndex = (currentHallucinationFrameIndex + 1) % hallucinationFrames.Length;             //
-                hallucinationFrameTimeIndex = Time.time;                                                                        //
-                Color imageColor = hallucinationScreen.color;
-                imageColor.a = hallucinationScreen.color.a - (hallucinationScreenAlphaDecrement * hallucinationScreen.color.a);
-                if (imageColor.a > 0.2) {
-                    hallucinationScreen.color = imageColor;
-                }
-                if (hallucinatingUnscrambledText) { hallucinatingText.text = hallucinatingNonRandomText; } 
-                else { hallucinatingText.text = GenerateHallucinationText(); }
-            }                                                                                                                   //
-                                                                                                                                //
-        } else {                                                                                                                //
-            hallucinationScreen.enabled = false;                                                                                //
-            hallucinatingText.enabled = false;
-            hallucinatingTextBgd.enabled = false;
 
-            Color newColor = hallucinationScreen.color;
-            newColor.a = 1;
-            hallucinationScreen.color = newColor;
-        }                                                                                                                       //
-    }                                                                                                                           //
+
+
+        //if (rightEye.RightEyeTargetGhost() != null) { SetHallucinationTextToStringInsteadOfRandom(rightEye.RightEyeTargetGhost().hallucinationText); }
+        //else                                        { SetHallucinatingTextToRandom(); }
+
+        if (gardenOverlays.Count > 0) {
+            if (showGardenOverlays) {
+
+                //if (imagesWithDependentAlpha.Count > 0) {
+                //    foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
+                //        img.ScaleOriginalAlpha(alphaScalarForGardenOverlays);
+                //    }
+                //}
+
+                if (gardenOverlayCameras.Count > 0) {
+                    if (Time.time - gardenOverlayFOVShiftRefTime > gardenOverlayFOVShiftRandomTime) {
+                        foreach (Camera cam in gardenOverlayCameras) {
+                            float randShift = Random.Range(gardenOverlayFOVShiftMin, gardenOverlayFOVShiftMax);
+                            if (Random.Range(0, 2) == 0) {
+                                randShift = randShift * -1;
+                            }
+
+                            cam.fieldOfView = bodyCamera.fieldOfView + randShift;
+                            gardenOverlayFOVShiftRandomTime = Random.Range(gardenOverlayFOVShiftMinTime, gardenOverlayFOVShiftMaxTime);
+                            gardenOverlayFOVShiftRefTime = Time.time;
+                        }
+                    }
+                }
+
+                foreach (RawImage img in gardenOverlays) {
+                    img.enabled = true;
+                }               
+            }
+            else {
+                foreach (RawImage img in gardenOverlays) {
+                    img.enabled = false;
+                }
+
+                if (imagesWithDependentAlpha.Count > 0) {
+                    foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
+                        img.SetAlphaToOriginal();
+                    }
+                }
+            }
+
+            foreach (Camera cam in gardenOverlayCameras) {
+                if (cam.fieldOfView < (bodyCamera.fieldOfView - gardenaCamFOVProximityThreshold)) {
+                    cam.fieldOfView += gardenCamFOVShiftRate * Time.deltaTime;
+                } else if ( cam.fieldOfView > (bodyCamera.fieldOfView + gardenaCamFOVProximityThreshold)) {
+                    cam.fieldOfView -= gardenCamFOVShiftRate * Time.deltaTime;
+                }
+            }
+        }
+
+        if (view.bodyControl && view.bodyCamActive && hallucinating) {
+            mainOverlay.enabled = false;
+            vawnTripOverlay.enabled = true;
+
+            //if (Time.time - vawnTripRotRefTime > vawnTripRotRandTime) {
+            //    if (vawnTripNegRotFirst) {
+            //        if (vawnTripIsRotNeg) {
+            //            if (vawnTripCamera.transform.localEulerAngles.z > -vawnTripRandRot) { vawnTripCamera.transform.Rotate(0, 0, -vawnTripRotRate * Time.deltaTime); }
+            //            else                                                                { vawnTripIsRotNeg = false; }
+            //        }
+            //        else {
+            //            if (vawnTripCamera.transform.localEulerAngles.z < vawnTripRandRot) { vawnTripCamera.transform.Rotate(0, 0, vawnTripRotRate * Time.deltaTime); }
+            //            else                                                                { InitializeVawnTripRotVariables(); }
+            //        }
+            //    }
+            //    else {
+            //        if (!vawnTripIsRotNeg) {
+            //            if (vawnTripCamera.transform.localEulerAngles.z < vawnTripRandRot) { vawnTripCamera.transform.Rotate(0, 0, -vawnTripRotRate * Time.deltaTime); }
+            //            else                                                                { vawnTripIsRotNeg = true; }
+            //        }
+            //        else {
+            //            if (vawnTripCamera.transform.localEulerAngles.z > -vawnTripRandRot) { vawnTripCamera.transform.Rotate(0, 0, -vawnTripRotRate * Time.deltaTime); }
+            //            else                                                                { InitializeVawnTripRotVariables(); }
+            //        }
+            //    }
+            //}
+
+            if (Time.time - vawnTripFOVStretchRefTime > vawnTripFOVStretchRandTime) {
+                if (!vawnTripIsStretchNeg) {
+                    if (vawnTripCamera.fieldOfView < (vawnTripCurrentTargetFOV)) {
+                        vawnTripCamera.fieldOfView += vawnTripFOVStretchRate * Time.deltaTime;
+                    }
+                    else {
+                        vawnTripIsStretchNeg = true;
+                        vawnTripCurrentTargetFOV = vawnTripCamera.fieldOfView - vawnTripRandFOVStretch;
+                        musicBox.PlaySFX(heartbeatSound);
+                    }
+                }
+                else {
+                    if (vawnTripCamera.fieldOfView > vawnTripCurrentTargetFOV) {
+                        vawnTripCamera.fieldOfView -= vawnTripFOVStretchRate * Time.deltaTime;
+                    }
+                    else {
+
+                        Debug.Log(currentvawnTripPulseNumber + ", " + vawnTripFOVStretchRandTime);
+
+                        switch (currentvawnTripPulseNumber) {
+                            case 0:
+                                vawnTripRandFOVStretch = Random.Range(vawnTripFOVStretchRandMin, vawnTripFOVStretchRandMax);
+                                vawnTripCurrentTargetFOV = vawnTripCamera.fieldOfView + vawnTripRandFOVStretch;
+                                vawnTripFOVStretchRandTime = vawnTripSecondPulseTime;
+                                currentvawnTripPulseNumber++;
+                                break;
+                            case 1:
+                                vawnTripRandFOVStretch = Random.Range(vawnTripFOVStretchRandMin, vawnTripFOVStretchRandMax);
+                                vawnTripCurrentTargetFOV = vawnTripCamera.fieldOfView + vawnTripRandFOVStretch;
+                                vawnTripFOVStretchRandTime = vawnTripThirdPulseTime;
+                                currentvawnTripPulseNumber++;
+                                break;
+                            case 2:
+                                InitializeVawnTripStretchVariables();
+                                break;
+                        }
+
+                        vawnTripIsStretchNeg = false;
+                        vawnTripFOVStretchRefTime = Time.time;
+                    }
+                }
+            }
+        }
+        else {
+            mainOverlay.enabled = true;
+            vawnTripOverlay.enabled = false;
+        }
+
+        hallucinationScreen.enabled = false;                                                                                //
+        hallucinatingText.enabled = false;
+        hallucinatingTextBgd.enabled = false;
+
+        //if (hallucinating) {                                                                                                    //
+        //    hallucinationScreen.enabled = true;                                                                                 //
+        //    hallucinatingText.enabled = true;
+        //    hallucinatingTextBgd.enabled = true;
+
+        //    hallucinationScreen.texture = hallucinationFrames[currentHallucinationFrameIndex];                                  //
+        //                                                                                                                        //
+        //    if ((Time.time - hallucinationFrameTimeIndex) > hallucinationFrameTime) {                                           //
+        //        currentHallucinationFrameIndex = (currentHallucinationFrameIndex + 1) % hallucinationFrames.Length;             //
+        //        hallucinationFrameTimeIndex = Time.time;                                                                        //
+        //        Color imageColor = hallucinationScreen.color;
+        //        imageColor.a = hallucinationScreen.color.a - (hallucinationScreenAlphaDecrement * hallucinationScreen.color.a);
+        //        if (imageColor.a > 0.2) {
+        //            hallucinationScreen.color = imageColor;
+        //        }
+        //        if (hallucinatingUnscrambledText) { hallucinatingText.text = hallucinatingNonRandomText; } 
+        //        else { hallucinatingText.text = GenerateHallucinationText(); }
+        //    }                                                                                                                   //
+        //                                                                                                                        //
+        //} else {                                                                                                                //
+        //    hallucinationScreen.enabled = false;                                                                                //
+        //    hallucinatingText.enabled = false;
+        //    hallucinatingTextBgd.enabled = false;
+
+        //    Color newColor = hallucinationScreen.color;
+        //    newColor.a = 1;
+        //    hallucinationScreen.color = newColor;
+        //}                                                                                                                       //
+    }
+
+    private void InitializeVawnTripRotVariables() {
+        if (Random.Range(0, 2) == 0) {
+            vawnTripNegRotFirst = true;
+            vawnTripIsRotNeg = true;
+        }
+        else {
+            vawnTripNegRotFirst = false;
+            vawnTripIsRotNeg = false;
+        }
+
+        vawnTripRandRot = Random.Range(vawnTripRotRandMin, vawnTripRotRandMax);
+        vawnTripRotRandTime = Random.Range(vawnTripRotTimeRandMin, vawnTripRotTimeRandMax);
+        vawnTripRotRefTime = Time.time;
+    }
+
+    private void InitializeVawnTripStretchVariables() {
+        //if (Random.Range(0, 2) == 0) {
+        //    vawnTripNegFOVStretchFirst = true;
+        //    vawnTripIsStretchNeg = true;
+        //}
+        //else {
+        //    vawnTripNegFOVStretchFirst = false;
+        //    vawnTripIsStretchNeg = false;
+        //}
+
+        vawnTripIsStretchNeg = false;
+        
+        vawnTripRandFOVStretch = Random.Range(vawnTripFOVStretchRandMin, vawnTripFOVStretchRandMax);        
+        vawnTripFOVStretchRandTime = Random.Range(vawnTripFOVStretchTimeRandMin, vawnTripFOVStretchTimeRandMax);
+        vawnTripPulseTimes[0] = vawnTripFOVStretchRandTime;
+        currentvawnTripPulseNumber = 0;
+        vawnTripCurrentTargetFOV = vawnTripCamera.fieldOfView + vawnTripRandFOVStretch;
+        vawnTripFOVStretchRefTime = Time.time;
+    }
 
     private string GenerateHallucinationText() {
         char c1 = stringOfAlphas[Random.Range(0, stringOfAlphas.Length - 1)];
@@ -623,6 +1021,12 @@ public class CameraMaster : MonoBehaviour {
         hallucinatingUnscrambledText = false;
     }
 
+    // Allows other scripts to reset the keyTimer to avoid double presses
+    // This prevents a double press of the X button after choosing an exit line in comms, which would cause the eye to dislodge, for example
+    public void ResetKeyTimer() {
+        keyTimerRef = Time.time;
+    }
+
     private void CheckIfRightEyePowersAreAvailable() {
         if (rightEye.rightEyeActive || (rightEyeLodged && view.bodyCamActive)) {
             rightEyeAbilitiesAvailable = true;
@@ -651,5 +1055,35 @@ public class CameraMaster : MonoBehaviour {
     private void ToggleTedTrackOr6DOF() {
         if (rightEye.rightEyeLock)  { rightEye.tedTrack = !rightEye.tedTrack; } 
         else                        { rightEye.sixDOF = !rightEye.sixDOF; }
+    }
+
+    [System.Serializable]
+    public class ImageAndAlpha {
+        public RawImage image;
+
+        [SerializeField]
+        private float originalAlpha;     // value is 0 to 1
+
+        public float GetCurrentAlpha() {
+            return image.color.a;
+        }
+
+        public float GetOriginalAlpha() {
+            return originalAlpha;
+        }
+
+        public void ScaleOriginalAlpha(float alpha) {
+            image.color = new Color(image.color.r, image.color.g, image.color.b, originalAlpha * alpha);
+        }
+
+        public void SetAlphaToOriginal() {
+            image.color = new Color(image.color.r, image.color.g, image.color.b, originalAlpha);
+        }
+
+        public void IntializeOriginalAlpha() {
+            if (originalAlpha == 0) {
+                originalAlpha = image.color.a;
+            }
+        }
     }
 }

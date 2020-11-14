@@ -23,6 +23,8 @@ public class ToolSelector : MonoBehaviour
 
     private enum ToolHighlight { security, trajectory, materialsAnalysis, imageAnalysis, shield, mirage, none };
     private ToolHighlight ToolSelect;
+
+    private float toolSelectionWheelDelta = 0.1f;
     
     // Start is called before the first frame update
     void Start()
@@ -75,12 +77,12 @@ public class ToolSelector : MonoBehaviour
     }
 
     public void IconPointer(float x, float y) {
-        if (x == 0) {
+        if (x <= toolSelectionWheelDelta && x >= -toolSelectionWheelDelta) {
             //ClearHighlight();
-        } else if (x > 0 && y == 0) {
+        } else if (x > toolSelectionWheelDelta && (y <= toolSelectionWheelDelta && y >= -toolSelectionWheelDelta)) {
             HighlightIcon(imageAnalysisIcon);
             ToolSelect = ToolHighlight.imageAnalysis;
-        } else if (x < 0 && y == 0) {
+        } else if (x < -toolSelectionWheelDelta && (y <= toolSelectionWheelDelta && y>= -toolSelectionWheelDelta)) {
             HighlightIcon(securityIcon);
             ToolSelect = ToolHighlight.security;
         } else if (x > 0 && y != 0) {
@@ -119,7 +121,7 @@ public class ToolSelector : MonoBehaviour
     private void HighlightIcon(RawImage icon) {
         iconHighlight.transform.position = icon.transform.position + new Vector3(0, 0, -1);
         iconHighlight.enabled = true;
-        scanner.DisplayTextUsingModeColor(icon.name);
+        scanner.DisplayToolText(icon.name);
 
         highlightedIcon = icon;
     }
@@ -127,7 +129,7 @@ public class ToolSelector : MonoBehaviour
     private void ClearHighlight() {
         iconHighlight.enabled = false;
         if (resetScannerDisplayModeTextTrigger) {
-            scanner.DisplayTextUsingModeColor(scanner.displayModeText);
+            scanner.DisplayToolText(scanner.displayModeText);
             resetScannerDisplayModeTextTrigger = false;
         }
     }

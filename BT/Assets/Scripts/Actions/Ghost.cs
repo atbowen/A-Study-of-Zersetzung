@@ -34,7 +34,7 @@ public class Ghost : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (camMaster.hallucinating) {
+        if (camMaster.showGardenOverlays) {
             ShowMeshesAndColliders();
         } else {
             HideMeshesAndColliders();

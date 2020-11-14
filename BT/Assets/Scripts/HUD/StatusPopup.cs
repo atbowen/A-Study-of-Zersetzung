@@ -7,7 +7,12 @@ public class StatusPopup : MonoBehaviour
 {
     public RawImage statusBgd;
     public Text statusText;
-    public float showTime, fadeTime, fadeRate;
+    public float popupTime, showTime, fadeRate;
+    public AudioClip messagePickupSound;
+
+    private MusicPlayer musicBox;
+    private AudioClip currentClip;
+    private bool soundPlayerOn;
 
     private int statusBgdHeight, statusBgdWidth;
     private Vector2 statusBgdPosition;
@@ -15,13 +20,16 @@ public class StatusPopup : MonoBehaviour
     private const int fontHeight = 8;
 
     private bool refreshed;
-    private float statusShowTimerRef, statusFadeTimerRef;
+    private float popupTimerRef, statusShowTimerRef, statusFadeTimerRef;
     private Color textColor, origTextColor, bgdColor, origBgdColor;
     
     // Start is called before the first frame update
     void Start()
     {
+        musicBox = FindObjectOfType<MusicPlayer>();
+
         refreshed = false;
+        soundPlayerOn = false;
 
         statusShowTimerRef = 0;
         statusFadeTimerRef = 0;
@@ -44,25 +52,29 @@ public class StatusPopup : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (refreshed) {
+        if (refreshed && (Time.time - popupTimerRef > popupTime)) {
             statusBgd.enabled = true;
             statusText.enabled = true;
 
-            if (Time.time - statusShowTimerRef > showTime) {
+            if (soundPlayerOn) {
+                musicBox.PlaySFX(currentClip);
+                soundPlayerOn = false;
+            }
+
+            if (Time.time - popupTimerRef > popupTime + showTime) {
 
                 if (textColor.a > 0.05) {
                     textColor.a -= Time.deltaTime * fadeRate;
                     bgdColor.a -= Time.deltaTime * fadeRate;
                 }
-
-                if (Time.time - statusShowTimerRef - statusFadeTimerRef > fadeTime + showTime) {
+                else {
                     statusBgd.enabled = false;
                     statusText.enabled = false;
 
                     textColor = origTextColor;
                     bgdColor = origBgdColor;
                     refreshed = false;
-                } 
+                }
             }
         }
 
@@ -103,10 +115,78 @@ public class StatusPopup : MonoBehaviour
     public void FlashStatusText(string newText) {
         statusText.text = newText;
 
-        statusBgd.enabled = true;
-        statusText.enabled = true;
+        //statusBgd.enabled = true;
+        //statusText.enabled = true;
 
         refreshed = true;
+        popupTimerRef = Time.time;
         statusShowTimerRef = Time.time;
+    }
+
+    public void FlashStatusText(string newText, float delay) {
+        statusText.text = newText;
+
+        //statusBgd.enabled = true;
+        //statusText.enabled = true;
+
+        refreshed = true;
+        popupTimerRef = Time.time + delay;
+        statusShowTimerRef = Time.time;
+    }
+
+    public void FlashStatusText(string newText, AudioClip clip) {
+        statusText.text = newText;
+
+        //statusBgd.enabled = true;
+        //statusText.enabled = true;
+
+        refreshed = true;
+        popupTimerRef = Time.time;
+        statusShowTimerRef = Time.time;
+
+        soundPlayerOn = true;
+        currentClip = clip;
+    }
+
+    public void FlashStatusText(string newText, AudioClip clip, float delay) {
+        statusText.text = newText;
+
+        //statusBgd.enabled = true;
+        //statusText.enabled = true;
+
+        refreshed = true;
+        popupTimerRef = Time.time + delay;
+        statusShowTimerRef = Time.time;
+
+        soundPlayerOn = true;
+        currentClip = clip;
+    }
+
+    public void FlashStatusAndPlayMessagePickupSound(string newText) {
+        statusText.text = newText;
+
+        //statusBgd.enabled = true;
+        //statusText.enabled = true;
+
+        refreshed = true;
+        popupTimerRef = Time.time;
+        statusShowTimerRef = Time.time;
+
+        soundPlayerOn = true;
+        currentClip = messagePickupSound;
+    }
+
+    public void FlashStatusAndPlayMessagePickupSound(string newText, float delay) {
+        statusText.text = newText;
+
+        //statusBgd.enabled = true;
+        //statusText.enabled = true;
+
+        refreshed = true;
+        popupTimerRef = Time.time + delay;
+        statusShowTimerRef = Time.time;
+
+        soundPlayerOn = true;
+        currentClip = messagePickupSound;
     }
 }

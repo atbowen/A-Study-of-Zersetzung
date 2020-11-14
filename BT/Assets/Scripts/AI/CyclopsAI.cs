@@ -24,7 +24,6 @@ public class CyclopsAI : MonoBehaviour {
 
     private float timeStartAttack;
     private float lookTimer, lookTimerStart;
-    private bool isLooking;
     private float patrolIdleTimer, patrolIdleTimerStart;
     private bool isPatrolling;
 
@@ -105,7 +104,6 @@ public class CyclopsAI : MonoBehaviour {
 
         lookTimerStart = 0;
         lookTimer = Random.Range(lookTimerMin, lookTimerMax) + lookTimerAnimationDelay;
-        isLooking = false;
 
         hitTed = false;
 
@@ -126,7 +124,7 @@ public class CyclopsAI : MonoBehaviour {
 
         if (!camControl.gamePaused) {
 
-            if (agent.isStopped) {
+            if (agent.enabled && agent.isStopped) {
                 agent.isStopped = false;
                 anim.speed = animResumeSpeed;
             }
@@ -158,7 +156,6 @@ public class CyclopsAI : MonoBehaviour {
 
                     if (friendlinessLevel > friendlinessThreshold) {
                         behavior = State.Friendly;
-                        Debug.Log(behavior);
                     }
 
                     if (alertLevel > alertThreshold) {
@@ -168,7 +165,6 @@ public class CyclopsAI : MonoBehaviour {
 
                     if (motivationLevel > motivationThreshold) {
                         behavior = State.Patrolling;
-                        Debug.Log(behavior);
                     }
 
                     

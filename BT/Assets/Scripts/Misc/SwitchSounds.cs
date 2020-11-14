@@ -2,22 +2,19 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SwitchSounds : MonoBehaviour
-{
+public class SwitchSounds : MonoBehaviour {
     [SerializeField]
     private AudioClip[] flipOn, flipOff;
     private AudioSource audioFX;
 
     // Start is called before the first frame update
-    void Awake()
-    {
+    void Awake() {
         audioFX = this.GetComponent<AudioSource>();
     }
 
     // Update is called once per frame
-    void Update()
-    {
-        
+    void Update() {
+
     }
 
     private void FlipOn() {

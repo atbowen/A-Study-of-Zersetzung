@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class CarEntrance : MonoBehaviour
 {
-    private ZXR tedsCar;
+
     private WorkDesk wkDesk;
     public bool canEnter, entering;
 
@@ -13,7 +13,7 @@ public class CarEntrance : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        tedsCar = FindObjectOfType<ZXR>();
+        //tedsCar = FindObjectOfType<ZXR>();
         wkDesk = FindObjectOfType<WorkDesk>();
 
         canEnter = false;
@@ -23,7 +23,7 @@ public class CarEntrance : MonoBehaviour
     void Update()
     {
         if (entering) {
-            tedsCar.tedEntering = true;
+            //tedsCar.tedEntering = true;
             entering = false;
         }
     }

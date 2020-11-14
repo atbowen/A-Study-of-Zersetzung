@@ -5,14 +5,21 @@ using UnityEngine.UI;
 
 public class MusicPlayer : MonoBehaviour {
 
+    [Range(0.0f, 100.0f)]
+    public float mainVolume, musicVolume, SFXVolume, voiceVolume;
+
     public Text playlist;
     public List<AudioClip> songs;
-    public float musicVolume, SFXVolume;
+    
     public float fadeOutFactor;
 
     public List<AudioSource> SFXChannels;
+    public List<AudioSource> outsideSFXChannels;
+    public List<AudioSource> voiceChannels;
     public AudioClip SPRINGDeskOpen, SPRINGDeskClose, SPRINGDeskChangeItem, SPRINGDeskNoItemToChange, SPRINGDeskChangeTab,
-                    kaChing;
+                    kaChing, commsNoSignal;
+
+    public bool playOnStart;
 
     private AudioSource muzakPlayer;
     private AudioClip currentSong;
@@ -25,9 +32,16 @@ public class MusicPlayer : MonoBehaviour {
         muzakPlayer = this.GetComponent<AudioSource>();
         camControl = FindObjectOfType<CameraMaster>();
 
-        muzakPlayer.volume = musicVolume;
+        initialVolume = mainVolume * 0.01f * musicVolume * 0.01f;
+
+        muzakPlayer.volume = initialVolume;
+        
         if (SFXChannels.Count > 0) {
-            foreach (AudioSource channel in SFXChannels) { channel.volume = SFXVolume; }
+            foreach (AudioSource channel in SFXChannels) { channel.volume = mainVolume * 0.01f * SFXVolume * 0.01f; }
+        }
+
+        if (outsideSFXChannels.Count > 0) {
+            foreach (AudioSource channel in outsideSFXChannels) { channel.volume = mainVolume * 0.01f * SFXVolume * 0.01f; }
         }
 
         playlist.supportRichText = true;
@@ -36,11 +50,13 @@ public class MusicPlayer : MonoBehaviour {
         currentSong = songs[index];
 
         muzakPlayer.clip = currentSong;
-        //muzakPlayer.Play();
+        if (playOnStart) {
+            muzakPlayer.Play();
+        }
         paused = false;
 
         runningTime = 0;
-        initialVolume = muzakPlayer.volume;
+        
     }
 
     // Use this for initialization
@@ -94,7 +110,7 @@ public class MusicPlayer : MonoBehaviour {
             }
             if (Input.GetKeyDown(KeyCode.Period)) {
                 muzakPlayer.Stop();
-                muzakPlayer.volume = 1;
+                muzakPlayer.volume = initialVolume;
                 if (index > songs.Count - 2) { index = 0; } else { index++; }
                 muzakPlayer.clip = songs[index];
                 if (!paused) {
@@ -139,49 +155,66 @@ public class MusicPlayer : MonoBehaviour {
         }
     }
 
-    public void PlaySFX(string soundName) {
-        bool foundName = true;
-        AudioClip clipToPlay = null;
+    public void PlaySPRINGDeskOpenSound() {
+        PlaySFX(SPRINGDeskOpen);
+    }
 
-        switch (soundName) {
-            case "SPRINGDeskOpen":
-                clipToPlay = SPRINGDeskOpen;
-                break;
-            case "SPRINGDeskClose":
-                clipToPlay = SPRINGDeskClose;
-                break;
-            case "SPRINGDeskChangeItem":
-                clipToPlay = SPRINGDeskChangeItem;
-                break;
-            case "SPRINGDeskNoItemToChange":
-                clipToPlay = SPRINGDeskNoItemToChange;
-                break;
-            case "SPRINGDeskChangeTab":
-                clipToPlay = SPRINGDeskChangeTab;
-                break;
-            case "got money":
-                clipToPlay = kaChing;
-                break;
-        }
+    public void PlaySPRINGDeskCloseSound() {
+        PlaySFX(SPRINGDeskClose);
+    }
+
+    public void PlaySPRINGDeskChangeItemSound() {
+        PlaySFX(SPRINGDeskChangeItem);
+    }
+
+    public void PlaySPRINGDeskNoItemToChangeSound() {
+        PlaySFX(SPRINGDeskNoItemToChange);
+    }
+
+    public void PlaySPRINGDeskChangeTabSound() {
+        PlaySFX(SPRINGDeskChangeTab);
+    }
+
+    public void PlayKaChing() {
+        PlaySFX(kaChing);
+    }
+
+    public void PlayCommsNoSignal() {
+        PlaySFX(commsNoSignal);
+    }
+
+    public void PlaySFX(AudioClip clip) {
 
         int chosenChannelIndex = 0;
+        
+        if (SFXChannels.Count > 0) {
+            for (int i = 0; i < SFXChannels.Count; i++) {
+                if (!SFXChannels[i].isPlaying) { chosenChannelIndex = i; }
+            }
 
-        if (foundName) {
-            if (SFXChannels.Count > 0) {
-                for (int i = 0; i < SFXChannels.Count; i++) {
-                    if (!SFXChannels[i].isPlaying) { chosenChannelIndex = i; }
-                }
-
-                if (clipToPlay != null) {
-                    SFXChannels[chosenChannelIndex].PlayOneShot(clipToPlay);
-                }
+            if (clip != null) {
+                SFXChannels[chosenChannelIndex].PlayOneShot(clip);
             }
         }
-
-        Debug.Log(soundName);
     }
 
     public void StopTheMusic() {
         if (muzakPlayer.isPlaying) { muzakPlayer.Stop(); }
+    }
+
+    public void AddChannelToOutsideSFXChannels(AudioSource audioFX) {
+        if (!outsideSFXChannels.Contains(audioFX)) {
+            outsideSFXChannels.Add(audioFX);
+        }
+
+        audioFX.volume = mainVolume * 0.01f * SFXVolume * 0.01f;
+    }
+
+    public void AddChannelToVoiceChannels(AudioSource audioVoice) {
+        if (!voiceChannels.Contains(audioVoice)) {
+            voiceChannels.Add(audioVoice);
+        }
+
+        audioVoice.volume = mainVolume * 0.01f * voiceVolume * 0.01f;
     }
 }

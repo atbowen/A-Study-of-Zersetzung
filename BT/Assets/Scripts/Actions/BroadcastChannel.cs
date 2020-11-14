@@ -22,19 +22,23 @@ public class BroadcastChannel {
     public void PlayBroadcast(Broadcast show) {
         show.isPlaying = true;
 
-        foreach (ActionScene routine in show.routines) {
-            foreach (Transform actor in show.actors) {
-                bool actorFound = false;
-                foreach (ParallelActions cues in routine.parallelActs) {
-                    foreach (Action actionCue in cues.actions) {
-                        if (actorFound = false && actor.name == actionCue.ActorName && actor.GetComponent<NPCIntelligence>() != null) {
-                            NPCIntelligence actorAI = actor.GetComponent<NPCIntelligence>();
-                            actorAI.BeginActingRoutine(routine);
-                        }
-                    }
-                }
-            }
-        }
+        //foreach (ActionScene routine in show.routines) {
+        //    foreach (Transform actor in show.actors) {
+        //        bool actorFound = false;
+        //        foreach (ParallelActions cues in routine.parallelActs) {
+        //            foreach (Action actionCue in cues.actions) {
+        //                if (actorFound == false && actor.name == actionCue.ActorName && actor.GetComponent<NPCIntelligence>() != null) {
+        //                    NPCIntelligence actorAI = actor.GetComponent<NPCIntelligence>();
+        //                    actorAI.BeginActingRoutine(routine);
+        //                }
+        //            }
+
+        //            foreach (Prompt line in cues.prompts) {
+
+        //            }
+        //        }
+        //    }
+        //}
     }
 
     public void ResetBroadcast(Broadcast show) {

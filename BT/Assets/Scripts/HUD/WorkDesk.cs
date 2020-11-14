@@ -77,7 +77,7 @@ public class WorkDesk : MonoBehaviour
             if (Input.GetButtonDown("Right Bumper")) {                                                                              //switch tabs...
                 HideAllSpringScreens();                                                                                             //first hide all of the Spring screens 
                 deskState = (DeskMode)((((int)deskState) + 1) % numOfDeskModes);                                                    //change the Desk mode
-                musicBox.PlaySFX(switchTabSound);
+                musicBox.PlaySPRINGDeskChangeTabSound();
 
                 PlaceItemToView(currentItemIndex);
                 itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
@@ -86,7 +86,7 @@ public class WorkDesk : MonoBehaviour
             if (Input.GetButtonDown("Left Bumper")) {
                 HideAllSpringScreens();
                 deskState = (DeskMode)((((int)deskState) - 1 + numOfDeskModes) % numOfDeskModes);
-                musicBox.PlaySFX(switchTabSound);
+                musicBox.PlaySPRINGDeskChangeTabSound();
 
                 PlaceItemToView(currentItemIndex);
                 itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
@@ -278,9 +278,9 @@ public class WorkDesk : MonoBehaviour
             currentItemIndex = (currentItemIndex + viewerInventory.Count + 1) % viewerInventory.Count;
             PlaceItemToView(currentItemIndex);
             itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
-            musicBox.PlaySFX(changeItemSound);
+            musicBox.PlaySPRINGDeskChangeItemSound();
         } else {
-            musicBox.PlaySFX(cantChangeItemSound);
+            musicBox.PlaySPRINGDeskNoItemToChangeSound();
         }
     }
 
@@ -294,17 +294,17 @@ public class WorkDesk : MonoBehaviour
             currentItemIndex = (currentItemIndex + viewerInventory.Count - 1) % viewerInventory.Count;
             PlaceItemToView(currentItemIndex);
             itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
-            musicBox.PlaySFX(changeItemSound);
+            musicBox.PlaySPRINGDeskChangeItemSound();
         } else {
-            musicBox.PlaySFX(cantChangeItemSound);
+            musicBox.PlaySPRINGDeskNoItemToChangeSound();
         }
     }
 
     public void CallDeskOpenSound() {
-        musicBox.PlaySFX(openDeskSound);
+        musicBox.PlaySPRINGDeskOpenSound();
     }
 
     public void CallDeskCloseSound() {
-        musicBox.PlaySFX(closeDeskSound);
+        musicBox.PlaySPRINGDeskCloseSound();
     }
 }

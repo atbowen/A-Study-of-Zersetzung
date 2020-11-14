@@ -10,7 +10,7 @@ public class Prompt : ScriptableObject {
     [TextArea]                          
     public string line;                 // Actual prompt text
 
-    public AnimationAudio animatedVoiceLine;
+    public AnimationAudio animatedSpeechLine;
 
     public bool hasAudio, audioOnly, continues, noVerbType, adviseType, humorType;
     public string keyword;             // Name of this prompt line (is this necessary???) ---> YES.  For cueing lines spoken between NPCs
@@ -23,10 +23,6 @@ public class Prompt : ScriptableObject {
     [SerializeField]
     public List<Action> triggeredActions;
 
-    // Drop items at line prompt
-    public bool dropItem;
-    public List<string> itemsToDrop;
-
     // Look at Ted or other NPC at prompt
     public bool lookAtTed;
     public bool lookAtFriend;
@@ -35,10 +31,6 @@ public class Prompt : ScriptableObject {
     public string nameOfFriendToLookAt;
     public bool matchLookDurationToSpeechTime;                          // If set to true, look duration will be speech line length + response + this look duration
     public float lookDuration;
-
-    // Feed render texture to monitor
-    public bool feedMonitor;
-    public Texture cameraFeed;
 
     [SerializeField]
     public Transition[] transitions;    // All possible transitions leading to new prompt

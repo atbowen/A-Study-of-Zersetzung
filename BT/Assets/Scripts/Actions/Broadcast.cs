@@ -2,15 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
+[CreateAssetMenu(menuName = "Broadcast")]
 public class Broadcast : ScriptableObject {
     // Show info
     public string showName;
     public bool isEmergencyMessage, isPlaying, finishedPlaying;
 
     // Set and actors
-    public Transform studioSet;
+    public string setName;
+    public string[] actorNames;
+    [HideInInspector]
     public List<Transform> actors;
+
+    // Cameras
+    public List<Camera> channelCameras;
+    public Camera currentOperatingCamera;
 
     // Commercial info
     public bool hasCommercials;

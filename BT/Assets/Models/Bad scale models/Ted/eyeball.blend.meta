@@ -1,0 +1,123 @@
+fileFormatVersion: 2
+guid: dc07ade70a6c48c48adaddeb757fc8e9
+timeCreated: 1506119776
+licenseType: Pro
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: base
+    100002: eyeball
+    100004: //RootNode
+    100006: Eyepatch
+    100008: Eyepatch_skel
+    100010: left_prong
+    100012: leftp1
+    100014: leftp2
+    100016: lower_prong
+    100018: lowp1
+    100020: lowp2
+    100022: right_prong
+    100024: rightp1
+    100026: rightp2
+    100028: upp1
+    100030: upp2
+    100032: upper_prong
+    400000: base
+    400002: //RootNode
+    400004: eyeball
+    400006: Eyepatch
+    400008: Eyepatch_skel
+    400010: left_prong
+    400012: leftp1
+    400014: leftp2
+    400016: lower_prong
+    400018: lowp1
+    400020: lowp2
+    400022: right_prong
+    400024: rightp1
+    400026: rightp2
+    400028: upp1
+    400030: upp2
+    400032: upper_prong
+    2300000: eyeball
+    3300000: eyeball
+    4300000: eyeball
+    4300002: Eyepatch
+    7400000: Default Take
+    7400002: extend
+    7400004: locked
+    7400006: open
+    7400008: spin_closed
+    7400010: still
+    9500000: //RootNode
+    13700000: Eyepatch
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 10
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 1
+    tangentImportMode: 3
+  importAnimation: 0
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -50,7 +50,7 @@ public class TedDoor : MonoBehaviour {
 	void Update () {
         
 
-        if (camMaster.hallucinating || camMaster.atTedsRoom) {                                                                                                      // if we're in hallucination mode, enable the renderer and collider of this hallucination object
+        if (camMaster.showGardenOverlays || camMaster.atTedsRoom) {                                                                                                      // if we're in hallucination mode, enable the renderer and collider of this hallucination object
             ShowMeshesAndColliders(objectsToHideMR, objectsToHideSMR, objectsHavingCollidersToDisable);
 
             if (fearMeter.adrenaline < fearMeter.adrMax) {

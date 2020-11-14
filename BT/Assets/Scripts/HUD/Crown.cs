@@ -130,7 +130,7 @@ public class Crown : MonoBehaviour
     
     public void IncreaseTotalAmount(float increaseAmount) {
 
-        musicBox.PlaySFX("got money");
+        musicBox.PlayKaChing();
 
         actualTotalCrown += increaseAmount;
         flashingIcon = true;

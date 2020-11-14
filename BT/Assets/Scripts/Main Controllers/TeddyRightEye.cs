@@ -16,12 +16,11 @@ public class TeddyRightEye : MonoBehaviour {
     public Texture lockIndicatorOn, lockIndicatorOff;
 
     private Teddy ted;                                                                                              // Ted reference needed for lock mode
-    //private Dave dave;
+    private TeddyHead tedHead;
     private GameObject cam;                                                                                         // Is this eye camera reference needed??                        !!!
     private BodyCam bCam;
     private Camera bCamCamera;
-    private TeddyLeftEye leftEye;
-    private ID scanObject;
+    private TeddyLeftEye leftEye;  
     private InfoScan scanner;
     private CameraMaster camMaster;
     private Text scanText;
@@ -32,16 +31,20 @@ public class TeddyRightEye : MonoBehaviour {
     private ToolSelector toolSelect;
     private float storedSpeed;
     private float scanStart;
-    private string emptyTxt;
-    private string previousTargetedIDObjectName;
     private Transform previousObject;
     private bool targetInfoCleared;
-    
+
+    private ID scanObject, previousTargetedID;
+    private Ghost targetedGhost;
+    private TextAndSpeech targetedSpeech;
+    private NPCIntelligence targetedAI;
+    private AudioSource targetedAudio;
 
     // Use this for initialization
     void Start () {
 
         ted = FindObjectOfType<Teddy>();
+        tedHead = FindObjectOfType<TeddyHead>();
         //dave = FindObjectOfType<Dave>();
         camMaster = FindObjectOfType<CameraMaster>();                                                                                                                
         cam = GameObject.Find("RightEyeCam");
@@ -68,14 +71,17 @@ public class TeddyRightEye : MonoBehaviour {
         lockIndicator.enabled = false;
         sixDOFIndicator.enabled = false;
 
-        emptyTxt = null;
-
         scanStart = 0;
 
         storedSpeed = rightEyeSpeed;
 
         scanObject = null;
-        previousTargetedIDObjectName = "";
+        previousTargetedID = null;
+        targetedGhost = null;
+        targetedSpeech = null;
+        targetedAI = null;
+        targetedAudio = null;
+
         targetInfoCleared = false;
 
         scanFrom = null;
@@ -94,7 +100,8 @@ public class TeddyRightEye : MonoBehaviour {
 
 
         if (tedTrack) {
-            this.transform.LookAt(ted.transform.position + new Vector3(0, 55, 0));
+            //this.transform.LookAt(ted.transform.position + new Vector3(0, 55, 0));
+            this.transform.LookAt(tedHead.transform.position);
             lockIndicator.texture = lockIndicatorOn;
             sixDOFIndicator.enabled = false;
         } else {
@@ -104,8 +111,7 @@ public class TeddyRightEye : MonoBehaviour {
         if (rightEyeLock)   {lockIndicator.enabled = true;} 
         else                {lockIndicator.enabled = false;}
 
-        if (camMaster.reticleEnabled) {
-            scanText.enabled = true;
+        if (camMaster.reticleEnabled || !camMaster.reticleEnabled) {
             
 
             //lockIndicator.enabled = true;
@@ -120,36 +126,72 @@ public class TeddyRightEye : MonoBehaviour {
                 scanFrom = bCam.transform;
             }
 
+            //if (bCam.IsHoldingDocument()) { scanner.HideReticleAndText(true); }
 
-            if (Physics.Raycast(scanFrom.position, scanFrom.TransformDirection(Vector3.forward), out hit, maxIDRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) {
+            if (!bCam.IsHoldingDocument() && !bCam.Using() && Physics.Raycast(scanFrom.position, scanFrom.TransformDirection(Vector3.forward), 
+                                                            out hit, maxIDRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) {
 
                 targetInfoCleared = false;
 
-                if (hit.collider.transform.Find("Ghost") != null) {
-                    camMaster.SetHallucinationTextToStringInsteadOfRandom(hit.collider.transform.Find("Ghost").GetComponent<Ghost>().hallucinationText);
-                } else { camMaster.SetHallucinatingTextToRandom(); }
+                // Set important AI components of target, if present
+                Transform targetTran;
 
-                if (hit.collider.transform.Find("TextAndSpeech") != null) {
-                    commsControl.startingPrompt = hit.collider.transform.Find("TextAndSpeech").GetComponent<TextAndSpeech>().openingTextLine;
-                    commsControl.transmissionSource = hit.collider.transform;
-                    if (hit.collider.transform.GetComponent<CyclopsAI>() != null && commsControl.textActive && hit.collider.transform.GetComponent<CyclopsAI>().alertLevel < 100) {
-                        hit.collider.transform.GetComponent<CyclopsAI>().alertLevel += Time.deltaTime * hit.collider.transform.GetComponent<CyclopsAI>().alertMultiplier;
+                if (hit.collider.GetComponent<PointerToID>()) {
+                    scanObject = hit.collider.GetComponent<PointerToID>().desiredID;
+                    targetTran = hit.collider.GetComponent<PointerToID>().desiredID.transform.parent;
+
+                    if (scanObject.GetType() == typeof(IDInteractable)) {
+                        IDInteractable IDThing = (IDInteractable)scanObject;
+
+                        if (hit.collider.GetComponent<PointerToID>().makeDesiredActivateThisCollider) {
+
+                            IDThing.currentSwitchCollider = hit.collider;
+
+                            if (!IDThing.switchColliders.Contains(hit.collider)) { IDThing.switchColliders.Add(hit.collider); }
+
+                            foreach (Collider col in hit.collider.GetComponent<PointerToID>().otherCollidersToActivate) {
+                                if (!IDThing.switchColliders.Contains(col)) { IDThing.switchColliders.Add(col); }
+                            }
+
+                            IDThing.switchColliderWithPointerColliders = true;
+                        }
                     }
-                } else {
-                    commsControl.startingPrompt = null;
-                    commsControl.transmissionSource = null;
+                }
+                else {
+
+                    targetTran = hit.collider.transform;
+                    if (targetTran.Find("ID") != null) {
+                        scanObject = targetTran.Find("ID").GetComponent<ID>();
+
+                        scanObject.ClearSwitchColliders();
+                    }
+                    else {
+                        scanObject = null;
+                    }
+
                 }
 
-                if (hit.collider.transform.Find("ID") != null) {
+                if (targetTran.Find("Ghost") != null)                   { targetedGhost = targetTran.Find("Ghost").GetComponent<Ghost>(); }
+                else                                                    { targetedGhost = null; }
+                if (targetTran.Find("TextAndSpeech") != null)           { targetedSpeech = targetTran.Find("TextAndSpeech").GetComponent<TextAndSpeech>(); }
+                else                                                    { targetedSpeech = null; }
+                if (targetTran.GetComponent<NPCIntelligence>() != null) { targetedAI = targetTran.GetComponent<NPCIntelligence>(); }
+                else                                                    { targetedAI = null; }
+                if (targetTran.GetComponent<AudioSource>() != null)     { targetedAudio = targetTran.GetComponent<AudioSource>(); }
+                else                                                    { targetedAudio = null; }
 
-                    scanObject = hit.collider.transform.Find("ID").GetComponent<ID>();
-                    if (!toolSelect.toolSelectorOpen) {
-                        if (scanObject.KnowName)    { scanner.DisplayTextUsingTargetingColor(scanObject.ObjName);} 
-                        else                        { scanner.DisplayTextUsingTargetingColor(scanObject.UnknownField); }
-                    }
-                    if (previousTargetedIDObjectName == scanObject.ObjName) {
+                if (hit.collider.transform.GetComponent<CyclopsAI>() != null && commsControl.textActive && hit.collider.transform.GetComponent<CyclopsAI>().alertLevel < 100) {
+                    hit.collider.transform.GetComponent<CyclopsAI>().alertLevel += Time.deltaTime * hit.collider.transform.GetComponent<CyclopsAI>().alertMultiplier;
+                }
 
-                        if (scanObject.IDType == ID.IdentificationType.Character) {
+                if (scanObject != null) {
+
+                    //if (!toolSelect.toolSelectorOpen) {
+                        
+                    //}
+                    if (previousTargetedID == scanObject) {
+
+                        if (scanObject.GetType() == typeof(IDCharacter)) {
                             IDCharacter idChar = (IDCharacter)scanObject;
                             foreach (Transform mark in idChar.markers) {
 
@@ -160,58 +202,83 @@ public class TeddyRightEye : MonoBehaviour {
                         }
                     }
 
-                    previousObject = hit.collider.transform;
-                    previousTargetedIDObjectName = scanObject.ObjName;
+                    if (scanObject.GetType() == typeof(IDInteractable)) {
+                        IDInteractable interactableTarget = (IDInteractable)scanObject;
 
-
-
-                    //scanner.DisplayBlurb(scanObject.ObjName, scanObject.ObjActualName, scanObject.ObjAvatarName, scanObject.ObjDescription, scanObject.UnknownField,
-                    //    scanObject.ObjStatus, scanObject.KnowName, scanObject.KnowActName, scanObject.KnowAvatarName, scanObject.KnowDescription, scanObject.KnowStatus);
-                    scanner.EnableInfoPanelWithID(scanObject);
-
-                    if (Input.GetButton("Square Button") && !camMaster.gamePaused) {
-                        if (!scanObject.KnowDescription) {
-                            if ((((Time.time - scanStart) * 40) > hit.collider.bounds.size.magnitude)) {
-                                scanObject.KnowDescription = true;
-                            }
-                        }
+                        bCam.TriggerVehicleInteriorAnimation(interactableTarget.interiorVehicleAnimationTrigger);
                     }
+                    else {
+                        bCam.TriggerVehicleInteriorAnimation("");
+                    }
+
+                    previousObject = targetTran;
+                    previousTargetedID = scanObject;
+
+                    // Display info panel for ID holder (based on ID type)
+                    scanObject.DisplayID();
+
+                    //if (Input.GetButton("Square Button") && !camMaster.gamePaused) {
+                    //    if (!scanObject.KnowDescription) {
+                    //        if ((((Time.time - scanStart) * 40) > hit.collider.bounds.size.magnitude)) {
+                    //            scanObject.KnowDescription = true;
+                    //        }
+                    //    }
+                    //}
                 } else {
-                    if (!toolSelect.toolSelectorOpen) {
-                        scanner.DisplayTextUsingModeColor(scanner.displayModeText);
-                    }
+
+                    if (previousTargetedID != null) { previousTargetedID.ClearSwitchColliders(); }
+                    
+                    scanObject = null;
+
+                    //if (!toolSelect.toolSelectorOpen) {
+                    //    scanner.DisplayTextUsingModeColor(scanner.displayModeText);
+                    //}
 
                     scanStart = Time.time;
-                    //scanner.DisplayBlurb(emptyTxt, emptyTxt, emptyTxt, emptyTxt, emptyTxt, emptyTxt, false, false, false, false, false);
                     scanner.DisableInfoPanel();
 
-                    if (scanObject != null && scanObject.IDType == ID.IdentificationType.Character) {
-                        IDCharacter idChar = (IDCharacter)scanObject;
+                    if (previousTargetedID != null && previousTargetedID.GetType() == typeof(IDCharacter)) {
+                        IDCharacter idChar = (IDCharacter)previousTargetedID;
                         foreach (Transform mark in idChar.markers) { mark.GetComponent<MeshRenderer>().enabled = false; }
                     }
+
+                    bCam.TriggerVehicleInteriorAnimation("");
                 }
 
             } else {
-                // Clear comms starting prompt and resume hallucination text scramble
-                commsControl.startingPrompt = null;
-                camMaster.SetHallucinatingTextToRandom();
 
-                // If tool selector isn't up, set the reticle display text to display mode color
-                if (!toolSelect.toolSelectorOpen) {
-                    scanner.DisplayTextUsingModeColor(scanner.displayModeText);
+                if (previousTargetedID != null && previousTargetedID.GetType() == typeof(IDInteractable)) {
+                    IDInteractable IDThing = (IDInteractable)previousTargetedID;
+
+                    IDThing.switchColliders.Clear();
+                    IDThing.switchColliderWithPointerColliders = false;
                 }
 
+                scanObject = null;
+                targetedGhost = null;
+                targetedSpeech = null;
+                targetedAI = null;
+                targetedAudio = null;
+
+                // If tool selector isn't up, set the reticle display text to display mode color
+                //if (!toolSelect.toolSelectorOpen) {
+                //    scanner.DisplayTextUsingModeColor(scanner.displayModeText);
+                //}
+
                 // Clear the info box info
-                //scanner.DisplayBlurb(emptyTxt, emptyTxt, emptyTxt, emptyTxt, emptyTxt, emptyTxt, false, false, false, false, false);
-                scanner.DisableInfoPanel();
+                if (!bCam.IsHoldingDocument()) {
+                    scanner.DisableInfoPanel();
+                }
                 scanStart = Time.time;
 
                 // If the previous target was a character, clear its markers
-                if (!targetInfoCleared && scanObject != null && scanObject.IDType == ID.IdentificationType.Character) {
-                    IDCharacter idChar = (IDCharacter)scanObject;
+                if (!targetInfoCleared && previousTargetedID != null && previousTargetedID.GetType() == typeof(IDCharacter)) {
+                    IDCharacter idChar = (IDCharacter)previousTargetedID;
                     foreach (Transform mark in idChar.markers) { mark.GetComponent<MeshRenderer>().enabled = false; }
                     targetInfoCleared = true;
                 }
+
+                bCam.TriggerVehicleInteriorAnimation("");
             }
         } else {
             scanText.enabled = false;
@@ -281,5 +348,25 @@ public class TeddyRightEye : MonoBehaviour {
                 //}
             //}                                                                                                       //      If view is locked...
         }
+    }
+
+    public ID RightEyeTargetID() {
+        return scanObject;
+    }
+
+    public Ghost RightEyeTargetGhost() {
+        return targetedGhost;
+    }
+
+    public TextAndSpeech RightEyeTargetSpeech() {
+        return targetedSpeech;
+    }
+
+    public NPCIntelligence RightEyeTargetAI() {
+        return targetedAI;
+    }
+
+    public AudioSource RightEyeTargetAudio() {
+        return targetedAudio;
     }
 }

@@ -10,4 +10,8 @@ public class IDItem : ID
         wkDesk.AddItemToViewer(myself);
         statusWindow.FlashStatusText(myself.name + "  was  added  to  inventory.");
     }
+
+    public override void DisplayID() {
+        scanner.EnableInfoPanelWithID(this);
+    }
 }

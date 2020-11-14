@@ -27,14 +27,17 @@ public abstract class ID : MonoBehaviour {
     public virtual bool KnowStatus { get => knowStatus; set => knowStatus = value; }
 
     [SerializeField]
-    protected bool arrestable, addedToEvidencePool;
-    public virtual bool Arrestable { get => arrestable; set => arrestable = value; }
+    protected bool addedToEvidencePool;
     public virtual bool AddedToEvidencePool { get => addedToEvidencePool; set => addedToEvidencePool = value; }
 
     [SerializeField]
     protected string relevantProjectName, relevantCrimeSceneName;
     public virtual string RelevantProjectName { get => relevantProjectName; set => relevantProjectName = value; }
     public virtual string RelevantCrimeSceneName { get => relevantCrimeSceneName; set => relevantCrimeSceneName = value; }
+
+    [SerializeField]
+    protected Vector3 offsetForPrisonCage;
+    public Vector3 OffsetForPrisonCage { get => offsetForPrisonCage; set => offsetForPrisonCage = value; }
 
     public CrimeSceneObject.ObjClass evidenceClass;
 
@@ -45,22 +48,8 @@ public abstract class ID : MonoBehaviour {
     public List<RequiredPassCode> codes;
     public List<RequiredKnowledge> knownFacts;
 
-    // State info
-    public enum IdentificationType { Character, Date, Vehicle, Item, Money, Interactable, Evidence};
-    [SerializeField]
-    public IdentificationType IDType;
-
     // Interactable parameters
-    public Collider interactionCollider;
-    public string triggerStringToActivate, triggerStringToDeactivate;
-    public bool isThereALightToTurnOn, isThereAnOnOffLightOnTheActivationSwitch, ActivationSwitchLightOnOffInversion;
-    public Transform objectWithLightSwitch, vehicleEntrance;
-    public Light activationPointSwitchLightOnOff;
     public float maxDistanceToActivate;
-
-    //public List<ActionTrigger> actionTrigs;
-    [SerializeField]
-    public List<Action> acts;
 
     //Components
     protected Animator anim;
@@ -68,11 +57,12 @@ public abstract class ID : MonoBehaviour {
     protected Collider coll;
     protected BodyCam bCam;
     protected CameraMaster camMaster;
-    protected TeddyHead ted;
+    protected Teddy ted;
     protected TeddyRightEye rightEye;
     protected TeddyLeftEye leftEye;
     protected Inventory tedInventory;
     protected WorkDesk wkDesk;
+    protected InfoScan scanner;
     protected StatusPopup statusWindow;
     protected PrisonManager prisonController;
     protected ActionSceneCoordinator actCoord;
@@ -82,8 +72,6 @@ public abstract class ID : MonoBehaviour {
 
     protected Transform myself;
 
-    private bool buttonPressed, isOn;
-
     // Use this for initialization
     void Start () {
         anim = this.GetComponentInParent<Animator>();
@@ -91,11 +79,12 @@ public abstract class ID : MonoBehaviour {
         coll = this.GetComponentInParent<Collider>();
         bCam = FindObjectOfType<BodyCam>();
         camMaster = FindObjectOfType<CameraMaster>();
-        ted = FindObjectOfType<TeddyHead>();
+        ted = FindObjectOfType<Teddy>();
         rightEye = FindObjectOfType<TeddyRightEye>();
         leftEye = FindObjectOfType<TeddyLeftEye>();
         tedInventory = FindObjectOfType<Teddy>().transform.Find("Inventory").GetComponent<Inventory>();
         wkDesk = FindObjectOfType<WorkDesk>();
+        scanner = FindObjectOfType<InfoScan>();
         statusWindow = FindObjectOfType<StatusPopup>();
         prisonController = FindObjectOfType<PrisonManager>();
         actCoord = FindObjectOfType<ActionSceneCoordinator>();
@@ -104,8 +93,6 @@ public abstract class ID : MonoBehaviour {
         trashCan = FindObjectOfType<Disposal>();
 
         myself = this.transform.parent;
-
-        buttonPressed = false;
 
         if (unknownField == null || unknownField == string.Empty) {
             unknownField = "???";
@@ -125,45 +112,6 @@ public abstract class ID : MonoBehaviour {
         
     }
 
-    public void TriggerInteraction() {
-        if (buttonPressed) {
-            anim = this.transform.parent.GetComponent<Animator>();
-            isOn = !isOn;
-
-            if (!isOn) {
-                anim.SetTrigger(triggerStringToDeactivate);
-                if (isThereALightToTurnOn && objectWithLightSwitch != null) {
-                    objectWithLightSwitch.GetComponent<SwitchLight>().lightOn = false;
-                }
-                if (isThereAnOnOffLightOnTheActivationSwitch && activationPointSwitchLightOnOff != null) {
-                    if (!ActivationSwitchLightOnOffInversion) {
-                        activationPointSwitchLightOnOff.intensity = 0;
-                    }
-                    else {
-                        activationPointSwitchLightOnOff.intensity = 1;
-                    }
-                }
-            }
-            else {
-                anim.SetTrigger(triggerStringToActivate);
-                if (isThereALightToTurnOn && objectWithLightSwitch != null) {
-                    objectWithLightSwitch.GetComponent<SwitchLight>().lightOn = true;
-                }
-                if (isThereAnOnOffLightOnTheActivationSwitch && activationPointSwitchLightOnOff != null) {
-                    if (!ActivationSwitchLightOnOffInversion) {
-                        activationPointSwitchLightOnOff.intensity = 1;
-                    }
-                    else {
-                        activationPointSwitchLightOnOff.intensity = 0;
-                    }
-                }
-            }
-
-            buttonPressed = false;
-        }
-    }
-
-
     public void AddToEvidencePool() {
         if (!addedToEvidencePool && relevantProjectName != "" && relevantCrimeSceneName != "") {
             projHandler.ImportCrimeSceneElementIntoPool(myself, evidenceClass, relevantCrimeSceneName);
@@ -175,6 +123,43 @@ public abstract class ID : MonoBehaviour {
         return addedToEvidencePool;
     }
 
+    public Collider GetActiveCollider() {
+        if (this.GetType() == typeof(IDInteractable)) {
+            IDInteractable IDThing = (IDInteractable)this;
+
+            if (IDThing.switchColliderWithPointerColliders && IDThing.currentSwitchCollider != null) {
+                return IDThing.currentSwitchCollider;
+            }
+            else {
+                return this.transform.parent.GetComponent<Collider>();
+            }
+        }
+        else {
+            return this.transform.parent.GetComponent<Collider>();
+        }
+    }
+
+    public float GetDistanceToActiveIDCollider(Vector3 sourcePosition) {
+        Collider colliderOfID =  GetActiveCollider();
+
+        return Vector3.Distance(colliderOfID.ClosestPoint(sourcePosition), sourcePosition);
+    }
+
+    public void ClearSwitchColliders() {
+        if (this.GetType() == typeof(IDInteractable)) {
+            IDInteractable IDThing = (IDInteractable)this;
+
+            IDThing.switchColliderWithPointerColliders = false;
+            IDThing.switchColliders.Clear();
+        }
+    }
+
+    public Transform GetSelf() {
+        return myself;
+    }
+
     // This will "use" the ID object, whether it's picking up an item, flipping a switch, arresting somebody, arresting an object(!), opening a car door, etc.
     public abstract void Activate();
+
+    public abstract void DisplayID();
 }

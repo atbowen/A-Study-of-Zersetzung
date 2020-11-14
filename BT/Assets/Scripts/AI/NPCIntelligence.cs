@@ -143,7 +143,7 @@ public class NPCIntelligence : MonoBehaviour
         foreach (ConversationStarter starterLine in speechController.friendLines) {
             if ((starterLine.friendName == currentFriend.transform.name) && !friendLineFound) {
                 currentFriend.currentFriend = this;
-                AnimationAudio line = starterLine.friendLine.animatedVoiceLine;
+                AnimationAudio line = starterLine.friendLine.animatedSpeechLine;
                 currentSpeechLine = starterLine.friendLine;
                 //speechController.PlayClipAndStartAnimatingFace(line.audioLine, line.startDelayInSec, line.animationCues,
                 //                line.mouthPoseOverrideTimeInterval, line.emotionCues, line.feelingOverrideTimeInterval,
@@ -180,9 +180,9 @@ public class NPCIntelligence : MonoBehaviour
         targetHead = head;
         lookingAtPerson = true;
         if (matchDuration) {
-            lookingAtPersonDuration = currentSpeechLine.animatedVoiceLine.clipLength + duration;
+            lookingAtPersonDuration = currentSpeechLine.animatedSpeechLine.clipLength + duration;
             if (currentSpeechLine.NPCresponseToThisLine != null) {
-                lookingAtPersonDuration += currentSpeechLine.NPCresponseToThisLine.animatedVoiceLine.clipLength;
+                lookingAtPersonDuration += currentSpeechLine.NPCresponseToThisLine.animatedSpeechLine.clipLength;
             }
         }
         else { lookingAtPersonDuration = duration; }
@@ -194,7 +194,7 @@ public class NPCIntelligence : MonoBehaviour
         foreach (Prompt convoLine in speechController.textLines) {
             if (response == convoLine) {
 
-                AnimationAudio line = convoLine.animatedVoiceLine;
+                AnimationAudio line = convoLine.animatedSpeechLine;
                 if (!friendLineFound) {
                     //currentSpeechLine = convoLine;
                     //speechController.PlayClipAndStartAnimatingFace(line.audioLine, line.startDelayInSec, line.animationCues,
@@ -313,23 +313,10 @@ public class NPCIntelligence : MonoBehaviour
     public void RunActionsAndSpeechForLine(Prompt line) {
 
         if (line.hasAudio) {
-            AnimationAudio speechLine = line.animatedVoiceLine;
-            speechController.PlayClipAndStartAnimatingFace(speechLine.audioLine, speechLine.startDelayInSec, speechLine.animationCues,
-                speechLine.mouthPoseOverrideTimeInterval, speechLine.emotionCues, speechLine.feelingOverrideTimeInterval, speechLine.triggerStringForEndingEmotion);
+            AnimationAudio voiceLine = line.animatedSpeechLine;
+            speechController.PlayClipAndStartAnimatingFace(voiceLine);
         }
 
-        if (line.dropItem) {
-            if (line.itemsToDrop.Count > 0) {
-                foreach (string name in line.itemsToDrop) {
-                    DropItem(name);
-                }
-            }
-        }
-
-        if (line.lookAtTed) {
-            LookAtPerson(line.lookDuration, FindObjectOfType<TeddyHead>().transform, line.matchLookDurationToSpeechTime);
-        }
-        
         if (line.lookAtFriend) {
             if (line.lookAtCurrentFriend && currentFriend != null) {
                 LookAtPerson(line.lookDuration, currentFriend.face, line.matchLookDurationToSpeechTime);
@@ -342,25 +329,23 @@ public class NPCIntelligence : MonoBehaviour
                 }
             }
         }
-
-        if (line.feedMonitor) { }
     }
 
-    public void DropItem(string itemName) {
-        if (inv != null) {
+    //public void DropItem(string itemName) {
+    //    if (inv != null) {
 
-            Transform item = inv.GetTransformByNameAndRemove(itemName);
+    //        Transform item = inv.GetTransformByNameAndRemove(itemName);
 
-            if (item != null) {
-                item.position = transform.TransformPoint(relativePosFromPlayerToDropItem);
-                if (item.GetComponent<MeshRenderer>() != null) { item.GetComponent<MeshRenderer>().enabled = true; }
-                if (item.GetComponent<SkinnedMeshRenderer>() != null) { item.GetComponent<SkinnedMeshRenderer>().enabled = true; }
-                if (item.GetComponent<Rigidbody>() != null) { item.GetComponent<Rigidbody>().isKinematic = false; }
-                if (item.GetComponent<Collider>()) { item.GetComponent<Collider>().enabled = true; }
+    //        if (item != null) {
+    //            item.position = transform.TransformPoint(relativePosFromPlayerToDropItem);
+    //            if (item.GetComponent<MeshRenderer>() != null) { item.GetComponent<MeshRenderer>().enabled = true; }
+    //            if (item.GetComponent<SkinnedMeshRenderer>() != null) { item.GetComponent<SkinnedMeshRenderer>().enabled = true; }
+    //            if (item.GetComponent<Rigidbody>() != null) { item.GetComponent<Rigidbody>().isKinematic = false; }
+    //            if (item.GetComponent<Collider>()) { item.GetComponent<Collider>().enabled = true; }
 
-                item.parent = null;
+    //            item.parent = null;
 
-            }
-        }
-    }
+    //        }
+    //    }
+    //}
 }

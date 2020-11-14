@@ -70,6 +70,8 @@ public class FakeTedAI : MonoBehaviour
     public State behavior;
     public float alertMultiplier;
 
+    public Texture fakeTedPortrait;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -417,6 +419,10 @@ public class FakeTedAI : MonoBehaviour
         behavior = State.Idle;
 
         activated = true;
+    }
+
+    public bool IsFakeTedActive() {
+        return activated;
     }
 
     public void DeactivateFakeTed() {

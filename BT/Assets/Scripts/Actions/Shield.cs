@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Shield : MonoBehaviour {
+    public List<AudioClip> partActivationSounds;
+    public AudioClip shieldActivationCompletionSound;
+
     private Teddy ted;
     private ToolSelector toolSelect;
+    private MusicPlayer musicBox;
     
     private bool activated;
 
@@ -34,6 +38,8 @@ public class Shield : MonoBehaviour {
     // Start is called before the first frame update
     void Start()
     {
+        musicBox = FindObjectOfType<MusicPlayer>();
+
         ShieldPart[] shieldPartSetArray = new ShieldPart[] { face, chest, gut, hips, leftUpperArm, leftLowerArm, leftHand,
             rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, rightUpperLeg, rightLowerLeg, leftBoot, rightBoot };
         shieldPartSet = new List<ShieldPart>(shieldPartSetArray);
@@ -57,10 +63,15 @@ public class Shield : MonoBehaviour {
                 ShieldPart randPart = shieldPartSet[randNum];
 
                 ActivateShieldPart(randPart);
+                PlayRandomShieldActivationSound();
                 shieldPartSetCopy.Add(randPart);
                 shieldPartSet.Remove(randPart);
 
                 refTimeforShieldPartActivations = Time.time;
+
+                if (shieldPartSet.Count == 1) {
+                    PlayShieldActivationCompletionSound();
+                }
             }
         } else {
             if ((Time.time - refTimeforShieldPartActivations > timeBetweenShieldPartActivations) && shieldPartSetCopy.Count > 0) {
@@ -68,6 +79,7 @@ public class Shield : MonoBehaviour {
                 ShieldPart randPart = shieldPartSetCopy[randNum];
 
                 DeactivateShieldPart(randPart);
+                PlayRandomShieldActivationSound();
                 shieldPartSet.Add(randPart);
                 shieldPartSetCopy.Remove(randPart);
 
@@ -124,6 +136,16 @@ public class Shield : MonoBehaviour {
 
     private void CreateTempListOfParts(List<ShieldPart> set) {
         shieldPartSetCopy = set;
+    }
+
+    private void PlayShieldActivationCompletionSound() {
+        musicBox.PlaySFX(shieldActivationCompletionSound);
+    }
+
+    private void PlayRandomShieldActivationSound() {
+        if (partActivationSounds.Count > 0) {
+            musicBox.PlaySFX(partActivationSounds[Random.Range(0, partActivationSounds.Count)]);
+        }
     }
 }
 

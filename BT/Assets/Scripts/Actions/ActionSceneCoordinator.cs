@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class ActionSceneCoordinator : MonoBehaviour
 {
-    private List<ActionRoutine> routines;
-
     private List<ActionScene> scenes = new List<ActionScene>();
     private List<Action> singleActs = new List<Action>();
 
@@ -14,16 +12,12 @@ public class ActionSceneCoordinator : MonoBehaviour
 
     private StatusPopup statusMsg;
 
-    private bool animationHold, freezeTedsBody, freezeRightEye, freezeTime;
-
     private float animationTimer, animationCurrentTime;
 
     // Start is called before the first frame update
     void Start()
     {
-        statusMsg = FindObjectOfType<StatusPopup>();        
-
-        animationHold = false;
+        statusMsg = FindObjectOfType<StatusPopup>();
     }
 
     // Update is called once per frame
@@ -50,29 +44,30 @@ public class ActionSceneCoordinator : MonoBehaviour
 
                 if (scene.parallelActs.Count > 0 && scene.active) {
 
-                    ParallelActions currentParallelActions = scene.activeParallelActs;
+                    //ParallelActions currentParallelActions = scene.activeParallelActs;
 
-                    for (int j = 0; j < currentParallelActions.actions.Count; j++) {
-                        Action act = currentParallelActions.actions[j];
+                    //for (int j = 0; j < currentParallelActions.actions.Count; j++) {
+                    //    Action act = currentParallelActions.actions[j];
 
-                        if (Time.time - act.StartTime > act.Duration) {
-                            act.Active = false;
-                            act.Finished = true;
-                        }
-                    }
+                    //    if (Time.time - act.StartTime > act.Duration) {
+                    //        act.Active = false;
+                    //        act.Finished = true;
+                    //    }
+                    //}
 
-                    if (AreParallelActionsAllDone(currentParallelActions)) {
-                        int index = scene.parallelActs.IndexOf(currentParallelActions);
+                    //if (AreParallelActionsAllDone(currentParallelActions)) {
+                    //    int index = scene.parallelActs.IndexOf(currentParallelActions);
 
-                        if (index < scene.parallelActs.Count - 1) {
-                            currentParallelActions = scene.parallelActs[index + 1];
-                            RunAllParallelActions(currentParallelActions);
-                        }
-                        else {
-                            scene.active = false;
-                            scenes.Remove(scene);
-                        }
-                    }
+                    //    if (index < scene.parallelActs.Count - 1) {
+                    //        currentParallelActions = scene.parallelActs[index + 1];
+                    //        RunAllParallelActions(currentParallelActions);
+                    //    }
+                    //    else {
+                    //        scene.active = false;
+                    //        scenes.Remove(scene);
+                    //    }
+                    //}
+                    scene.CueNextParallelActions();
                 }
             }
         }
@@ -99,12 +94,6 @@ public class ActionSceneCoordinator : MonoBehaviour
         }
     }
 
-    public void TriggerRoutine(ActionRoutine routine) {
-        if (routine.cues.Count > 0) {
-
-        }
-    }
-
     // This starts a simple action--one actor, one action
     public void TriggerAction(Action singleAction) {
         if (GameObject.Find(singleAction.ActorName) != null) {
@@ -120,25 +109,27 @@ public class ActionSceneCoordinator : MonoBehaviour
     // This adds the action scene to the pool of action scenes running in the update loop
     public void StartActionScene(ActionScene actScene) {
 
-        actScene.active = true;
+        //// Reset all actions in scene to active = false, finished = false;
+        //foreach (ParallelActions parActs in actScene.parallelActs) {
+        //    foreach(Action act in parActs.actions) {
+        //        act.Active = false;
+        //        act.Finished = false;
+        //    }
+        //}
 
-        // Reset all actions in scene to active = false, finished = false;
-        foreach (ParallelActions parActs in actScene.parallelActs) {
-            foreach(Action act in parActs.actions) {
-                act.Active = false;
-                act.Finished = false;
-            }
-        }
+        //// Set first set of parallel actions in scene to active/current and run it
+        //actScene.activeParallelActs = actScene.parallelActs[0];
+        //RunAllParallelActions(actScene.activeParallelActs);
 
-        // Set first set of parallel actions in scene to active/current and run it
-        actScene.activeParallelActs = actScene.parallelActs[0];
-        RunAllParallelActions(actScene.activeParallelActs);
-
+        // Initialize the scene
+        // Make it active, set the first set of ParallelActions as active, set the ParallelActions index to 0, initialize all actions contained within
+        actScene.InitializeScene();
         scenes.Add(actScene);
     }
     
     private void SearchAndDoAction(Action act) {
         act.DoAction();
+        Debug.Log(act);
         act.Active = true;
         act.StartTime = Time.time;
 

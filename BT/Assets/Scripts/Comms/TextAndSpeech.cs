@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class TextAndSpeech : MonoBehaviour
 {
-
     // This is for cataloguing this entities lines of text for comms interactivity
     public Prompt openingTextLine;
     public Prompt[] textLines;
@@ -16,6 +15,8 @@ public class TextAndSpeech : MonoBehaviour
     public float mouthShapeDefaultTimeInterval, emotionDefaultTimeInterval;
 
     public bool active;
+
+    private MusicPlayer musicBox;
 
     private AudioSource speechAudio;
     private AudioClip currentClip;
@@ -29,8 +30,13 @@ public class TextAndSpeech : MonoBehaviour
     private int currentMouthShapeCharIndex, currentEmotionCharIndex;
 
     void Start() {
+        musicBox = FindObjectOfType<MusicPlayer>();
         speechAudio = this.GetComponent<AudioSource>();
+
         if (face != null) { faceAnim = face.GetComponent<Animator>(); }
+
+        // This will add the AudioSource for this speaker's voice to the MusicPlayer to adjust the AudioSource's volume
+        if (speechAudio != null) { musicBox.AddChannelToVoiceChannels(speechAudio); }
 
         readyToPlayAudio = false;
 
@@ -42,11 +48,15 @@ public class TextAndSpeech : MonoBehaviour
     }
 
     private void Update() {
+
+        // Animate the face following the two animation code strings included in the a given Prompt
+        // The mouth shape string consists of 2-character animation state names for different mouth shapes
+        // The emotion string consists of 1-character animation state names for face poses which express different emotions
         if (faceIsAnimating) {
             if (Time.time - faceAnimationStartRefTime > faceAnimationStartDelay) {
-
                 if (readyToPlayAudio) {
                     speechAudio.PlayOneShot(currentClip);
+
                     readyToPlayAudio = false;
                 }
 
@@ -73,8 +83,16 @@ public class TextAndSpeech : MonoBehaviour
         }
     }
 
-    public void PlayClipAndStartAnimatingFace(AudioClip clip, float delay, 
-                            string animationKey, float mouthShapeIntervalOverride, string emotionKey, float emotionIntervalOverride, string endingEmote) {
+    public void PlayClipAndStartAnimatingFace(AnimationAudio speechLine) {
+
+        AudioClip clip = speechLine.audioLine;
+        float delay = speechLine.startDelayInSec;
+        string animationKey = speechLine.animationCues;
+        float mouthShapeIntervalOverride = speechLine.mouthPoseOverrideTimeInterval;
+        string emotionKey = speechLine.emotionCues;
+        float emotionIntervalOverride = speechLine.feelingOverrideTimeInterval;
+        string endingEmote = speechLine.triggerStringForEndingEmotion;
+
         faceIsAnimating = false;
         mouthShapeCode.Clear();
         emotionCode.Clear();

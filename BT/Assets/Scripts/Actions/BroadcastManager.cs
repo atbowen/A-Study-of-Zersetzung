@@ -7,6 +7,10 @@ public class BroadcastManager : MonoBehaviour {
 
     public List<BroadcastChannel> channels;
 
+    public int currentChannelIndex;
+
+    public Camera currentCamera;
+
     void Start() {
         foreach (BroadcastChannel chann in channels) {
             foreach (Broadcast show in chann.schedule) {
@@ -15,7 +19,7 @@ public class BroadcastManager : MonoBehaviour {
             }
 
             if (chann.currentBroadcast != null) {
-                chann.PlayBroadcast(chann.currentBroadcast);
+                PlayBroadcast(chann.currentBroadcast);
             } else {
                 chann.ShowOffAirScreens();
             }
@@ -26,6 +30,10 @@ public class BroadcastManager : MonoBehaviour {
         foreach (BroadcastChannel chann in channels) {
             CheckScheduleForBroadcastSwitchover(chann);
         }
+    }
+
+    private void PlayBroadcast(Broadcast show) {
+        FindObjectOfType<ActionSceneCoordinator>().StartActionScene(show.routines[0]);
     }
 
     public void CancelShowByName(string searchName) {
