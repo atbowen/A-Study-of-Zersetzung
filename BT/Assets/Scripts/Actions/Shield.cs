@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Shield : MonoBehaviour {
     public List<AudioClip> partActivationSounds;
@@ -34,6 +35,14 @@ public class Shield : MonoBehaviour {
     public float timeBetweenShieldPartActivations;
     private float refTimeforShieldPartActivations;
 
+    public RawImage shieldActivationPopup, littleShieldGuyAvatar;
+    public List<Texture> shieldActivationIconFrames, littleShieldGuyActivationFrames;
+    [SerializeField]
+    private float shieldPopupActivationFrameTime, shieldPopupDeactivationFrameTime;
+    private float shieldPopupAnimationRefTime;
+    private int shieldPopupAnimationFrameIndex;
+    private bool animatingShieldIconBgd, animatingLittleShieldGuyAvatar;
+
 
     // Start is called before the first frame update
     void Start()
@@ -52,6 +61,14 @@ public class Shield : MonoBehaviour {
         DeactivateShieldSet(shieldPartSet);
 
         refTimeforShieldPartActivations = 0;
+
+        shieldPopupAnimationFrameIndex = 0;
+
+        // Initialize variables for animating the shield popup in the HUD
+        shieldActivationPopup.texture = shieldActivationIconFrames[0];
+        littleShieldGuyAvatar.texture = littleShieldGuyActivationFrames[0];
+        animatingShieldIconBgd = true;
+        animatingLittleShieldGuyAvatar = false;
     }
 
     // Update is called once per frame
@@ -73,6 +90,36 @@ public class Shield : MonoBehaviour {
                     PlayShieldActivationCompletionSound();
                 }
             }
+
+            if (animatingShieldIconBgd) {
+                if (Time.time - shieldPopupAnimationRefTime > shieldPopupActivationFrameTime) {
+                    if (shieldPopupAnimationFrameIndex < shieldActivationIconFrames.Count - 1) {
+                        shieldPopupAnimationFrameIndex++;
+                        shieldActivationPopup.texture = shieldActivationIconFrames[shieldPopupAnimationFrameIndex];
+                    }
+                    else {
+                        animatingShieldIconBgd = false;
+                        animatingLittleShieldGuyAvatar = true;
+                        shieldPopupAnimationFrameIndex = 0;
+                    }
+
+                    shieldPopupAnimationRefTime = Time.time;
+                }
+            } else if (animatingLittleShieldGuyAvatar) {
+                if (Time.time - shieldPopupAnimationRefTime > shieldPopupActivationFrameTime) {
+                    if (shieldPopupAnimationFrameIndex < littleShieldGuyActivationFrames.Count - 1) {
+                        shieldPopupAnimationFrameIndex++;
+                        littleShieldGuyAvatar.texture = littleShieldGuyActivationFrames[shieldPopupAnimationFrameIndex];
+                    }
+                    else {
+                        animatingLittleShieldGuyAvatar = false;
+                        shieldPopupAnimationFrameIndex = littleShieldGuyActivationFrames.Count - 1;
+                    }
+
+                    shieldPopupAnimationRefTime = Time.time;
+                }
+            }
+
         } else {
             if ((Time.time - refTimeforShieldPartActivations > timeBetweenShieldPartActivations) && shieldPartSetCopy.Count > 0) {
                 int randNum = Random.Range(0, shieldPartSetCopy.Count);
@@ -85,12 +132,46 @@ public class Shield : MonoBehaviour {
 
                 refTimeforShieldPartActivations = Time.time;
             }
+
+            
+            if (animatingLittleShieldGuyAvatar) {
+                if (Time.time - shieldPopupAnimationRefTime > shieldPopupDeactivationFrameTime) {
+                    if (shieldPopupAnimationFrameIndex > 0) {
+                        shieldPopupAnimationFrameIndex--;
+                        littleShieldGuyAvatar.texture = littleShieldGuyActivationFrames[shieldPopupAnimationFrameIndex];
+                    }
+                    else {
+                        animatingShieldIconBgd = true;
+                        animatingLittleShieldGuyAvatar = false;
+                        shieldPopupAnimationFrameIndex = shieldActivationIconFrames.Count - 1;
+                    }
+
+                    shieldPopupAnimationRefTime = Time.time;
+                }
+            } else if (animatingShieldIconBgd) {
+                if (Time.time - shieldPopupAnimationRefTime > shieldPopupDeactivationFrameTime) {
+                    if (shieldPopupAnimationFrameIndex > 0) {
+                        shieldPopupAnimationFrameIndex--;
+                        shieldActivationPopup.texture = shieldActivationIconFrames[shieldPopupAnimationFrameIndex];
+                    }
+                    else {
+                        animatingShieldIconBgd = false;
+                        shieldPopupAnimationFrameIndex = 0;
+                    }
+
+                    shieldPopupAnimationRefTime = Time.time;
+                }
+            }
         }
     }
 
     public void ToggleShields() {
         activated = !activated;
-        
+
+        if (activated)  { animatingShieldIconBgd = true; }
+        else            { animatingLittleShieldGuyAvatar = true; }
+
+        shieldPopupAnimationRefTime = Time.time;
         //if (activated) { DeactivateShieldSet(shieldPartSet); }
         //else { ActivateShieldSet(shieldPartSet); }
     }

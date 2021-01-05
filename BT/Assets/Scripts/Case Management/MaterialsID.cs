@@ -11,12 +11,12 @@ public class MaterialsID : EvidenceData
     public float density, viscosity, sapConc;
     public string sapPurityTxt, additionalComments;
 
-    public override void SetProjectHandlerMode() {
-        projHandler = FindObjectOfType<ProjectHandler>();
-        projHandler.activeDataType = ProjectHandler.DataType.MatView;
+    public override void DetermineMatches() {
+        
     }
 
-    public override void UpdateResultsAndNotes() {
+    public override string GetResults() {
+        ProjectHandler projHandler = FindObjectOfType<ProjectHandler>();
         ProjectFile currentProject = projHandler.currentWorkingProject;
         projHandler.activeDataWindow.texture = this.materialImage;
 
@@ -46,5 +46,19 @@ public class MaterialsID : EvidenceData
 
         projHandler.resultsTxt.text = elementalResultsTxt + "\n" + propertiesTxt + "\n" + additionalCommentsTxt + "\n";
         projHandler.notesTxt.text = propertiesNotesTxt;
+
+        return results;
+    }
+
+    public override string GetResults(int referenceIndexToShow) {
+        return additionalComments;
+    }
+
+    public override string GetNotes() {
+        return notes;
+    }
+
+    public override string GetNotes(int referenceIndexToShow) {
+        return notes;
     }
 }

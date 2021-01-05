@@ -64,6 +64,7 @@ public abstract class ID : MonoBehaviour {
     protected WorkDesk wkDesk;
     protected InfoScan scanner;
     protected StatusPopup statusWindow;
+    protected MailScreen mailManager;
     protected PrisonManager prisonController;
     protected ActionSceneCoordinator actCoord;
     protected ProjectHandler projHandler;
@@ -86,13 +87,14 @@ public abstract class ID : MonoBehaviour {
         wkDesk = FindObjectOfType<WorkDesk>();
         scanner = FindObjectOfType<InfoScan>();
         statusWindow = FindObjectOfType<StatusPopup>();
+        mailManager = FindObjectOfType<MailScreen>();
         prisonController = FindObjectOfType<PrisonManager>();
         actCoord = FindObjectOfType<ActionSceneCoordinator>();
         projHandler = FindObjectOfType<ProjectHandler>();
         tedFunds = FindObjectOfType<Crown>();
         trashCan = FindObjectOfType<Disposal>();
 
-        myself = this.transform.parent;
+        myself = this.transform;
 
         if (unknownField == null || unknownField == string.Empty) {
             unknownField = "???";
@@ -131,11 +133,11 @@ public abstract class ID : MonoBehaviour {
                 return IDThing.currentSwitchCollider;
             }
             else {
-                return this.transform.parent.GetComponent<Collider>();
+                return this.transform.GetComponent<Collider>();
             }
         }
         else {
-            return this.transform.parent.GetComponent<Collider>();
+            return this.transform.GetComponent<Collider>();
         }
     }
 
@@ -162,4 +164,5 @@ public abstract class ID : MonoBehaviour {
     public abstract void Activate();
 
     public abstract void DisplayID();
+    public abstract void DisplayID(IDCharacter charID);
 }

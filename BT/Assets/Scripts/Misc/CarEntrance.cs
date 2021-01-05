@@ -4,17 +4,20 @@ using UnityEngine;
 
 public class CarEntrance : MonoBehaviour
 {
+    public bool canEnter, entering;
+    public Transform requiredItem, PositionToFaceWhenEntering;
 
     private WorkDesk wkDesk;
-    public bool canEnter, entering;
 
-    public Transform requiredItem, PositionToFaceWhenEntering;
-    
+    private Collider currentCollider;
+
     // Start is called before the first frame update
     void Start()
     {
         //tedsCar = FindObjectOfType<ZXR>();
         wkDesk = FindObjectOfType<WorkDesk>();
+
+        currentCollider = null;
 
         canEnter = false;
     }
@@ -29,25 +32,27 @@ public class CarEntrance : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider col) {
-        if (col.transform.tag == "Player") {
-            //if (wkDesk.inventory.Contains(requiredItem)) {
-                Debug.Log("can enter");
+        //if (col.transform.tag == "Player") {
 
-                canEnter = true;
-            //}
-            
-        } else if (col.transform.Find("Inventory")) {
-            Inventory targetInventory = col.transform.Find("Inventory").GetComponent<Inventory>();
 
-            if (targetInventory.items.Contains(requiredItem)) {
-                Debug.Log("can enter");
-            }
+        //} else if (col.transform.Find("Inventory")) {
+        //    Inventory targetInventory = col.transform.Find("Inventory").GetComponent<Inventory>();
 
-            canEnter = true;
-        }
+        //    if (targetInventory.items.Contains(requiredItem)) {
+        //        Debug.Log("can enter");
+        //    }
+
+        //    canEnter = true;
+        //}
+
+        currentCollider = col;
     }
 
     private void OnTriggerExit(Collider col) {
         canEnter = false;
+    }
+
+    public Collider GetCurrentCollider() {
+        return currentCollider;
     }
 }

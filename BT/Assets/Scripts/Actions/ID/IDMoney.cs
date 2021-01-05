@@ -16,4 +16,8 @@ public class IDMoney : ID
     public override void DisplayID() {
         scanner.EnableCreditPopup(this);
     }
+
+    public override void DisplayID(IDCharacter charID) {
+
+    }
 }

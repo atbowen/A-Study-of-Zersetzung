@@ -7,8 +7,17 @@ public class InventoryItem : MonoBehaviour
     public enum ItemCategory { Unique, Quantifiable, Money }
     public ItemCategory TypeOfItem;
 
+    // An 18x18 pixel shot of the item, for the Inventory tab in Work Desk - Desk
+    public Texture itemPic;
 
-    
+    public bool canBeInHand = true, isInHand = false, holdOnPickup;
+
+    public bool isCombinedItem;
+    public List<InventoryItem> consistsOfTheseItems;
+
+    public bool makesCombinationItem;
+    public List<InventoryItem> canCombineToMakeTheseItems;
+
     // Start is called before the first frame update
     void Start()
     {

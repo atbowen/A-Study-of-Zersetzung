@@ -7,7 +7,9 @@ public class IDInteractable : ID
     [SerializeField]
     public List<Action> triggeredActions;
 
-    public bool hasObjectBumping;
+    public bool hasObjectBumping, isScrambled;
+
+    public string scrambleStatusText, goodStatusCopy;
 
     public bool isSwitch, isOn, needsAnimationWaitTimesAndHoldStates, switchColliderWithPointerColliders;
 
@@ -36,14 +38,26 @@ public class IDInteractable : ID
     private float currentAnimationClipLength = 0;       // Start this value at 0 to ensure the first use actually works
 
     public override void DisplayID() {
+
+        if (isScrambled) {
+            ObjStatus = scrambleStatusText;
+        }
+        else {
+            ObjStatus = goodStatusCopy;
+        }
+
         scanner.EnableInfoPanelWithID(this);
+    }
+
+    public override void DisplayID(IDCharacter charID) {
+        
     }
 
     public override void Activate() {
 
         // Decide what animates and what the animation is
         if (alternateAnim != null)  { anim = alternateAnim; }
-        else                        { anim = this.transform.parent.GetComponent<Animator>(); }
+        else                        { anim = this.transform.GetComponent<Animator>(); }
 
         if (isSwitch) {
             string animationSwitchOnString, animationSwitchOffString;
@@ -77,85 +91,90 @@ public class IDInteractable : ID
             bCam.InitiateUseActionWithAnimationTrigger(animationString, animationTimeLength, shouldTedFreezeDuringAnimation);
         }
 
-        // If the object should react to being used, call BumpIt method from the requisite ObjectBumping script
-        if (hasObjectBumping) {
-            if (this.transform.parent.GetComponent<ObjectBumping>() != null) {
-                this.transform.parent.GetComponent<ObjectBumping>().BumpIt();
-            }
-        }
+        // Characters can perform the animation to interact with the object, but the object won't be affected if it's currently scrambled
 
-        // Run any actions included in the list
-        foreach (Action act in triggeredActions) {
-            act.DoAction();
-        }
+        if (!isScrambled) {
 
-
-        //if (usingForFirstTime) {
-        //    lastTimeHittingSwitch = -100;
-        //}
-
-        //usingForFirstTime = false;
-
-        if (isSwitch) {        
-
-            if (Time.time - lastTimeHittingSwitch > currentAnimationClipLength) {
-                if (!isOn) {
-
-                    if (collidersToDisableOnActivation.Count > 0) {
-                        foreach (Collider col in collidersToDisableOnActivation) { col.enabled = false; }
-                    }
-
-                    if (collidersToEnableOnActivation.Count > 0) {
-                        foreach (Collider col in collidersToEnableOnActivation) { col.enabled = true; }
-                    }
-
-                    anim.SetTrigger(triggerStringToActivate);
-                    if (isThereALightToTurnOn && objectWithLightSwitch != null) {
-                        objectWithLightSwitch.GetComponent<SwitchLight>().lightOn = false;
-                    }
-                    if (isThereAnOnOffLightOnTheActivationSwitch && activationPointSwitchLightOnOff != null) {
-                        if (!ActivationSwitchLightOnOffInversion) {
-                            activationPointSwitchLightOnOff.intensity = 0;
-                        }
-                        else {
-                            activationPointSwitchLightOnOff.intensity = 1;
-                        }
-                    }
-
-                    currentAnimationClipLength = ReturnClipLengthFromClipName(activationAnimClipName);
-
-                    lastTimeHittingSwitch = Time.time;
-
-                    isOn = true;                   
+            // If the object should react to being used, call BumpIt method from the requisite ObjectBumping script
+            if (hasObjectBumping) {
+                if (this.transform.GetComponent<ObjectBumping>() != null) {
+                    this.transform.GetComponent<ObjectBumping>().BumpIt();
                 }
-                else {
+            }
 
-                    if (collidersToDisableOnDeactivation.Count > 0) {
-                        foreach (Collider col in collidersToDisableOnDeactivation) { col.enabled = false; }
-                    }
+            // Run any actions included in the list
+            foreach (Action act in triggeredActions) {
+                act.DoAction();
+            }
 
-                    if (collidersToEnableOnDeactivation.Count > 0) {
-                        foreach (Collider col in collidersToEnableOnDeactivation) { col.enabled = true; }
-                    }
 
-                    anim.SetTrigger(triggerStringToDeactivate);
-                    if (isThereALightToTurnOn && objectWithLightSwitch != null) {
-                        objectWithLightSwitch.GetComponent<SwitchLight>().lightOn = true;
-                    }
-                    if (isThereAnOnOffLightOnTheActivationSwitch && activationPointSwitchLightOnOff != null) {
-                        if (!ActivationSwitchLightOnOffInversion) {
-                            activationPointSwitchLightOnOff.intensity = 1;
+            //if (usingForFirstTime) {
+            //    lastTimeHittingSwitch = -100;
+            //}
+
+            //usingForFirstTime = false;
+
+            if (isSwitch) {
+
+                if (Time.time - lastTimeHittingSwitch > currentAnimationClipLength) {
+                    if (!isOn) {
+
+                        if (collidersToDisableOnActivation.Count > 0) {
+                            foreach (Collider col in collidersToDisableOnActivation) { col.enabled = false; }
                         }
-                        else {
-                            activationPointSwitchLightOnOff.intensity = 0;
+
+                        if (collidersToEnableOnActivation.Count > 0) {
+                            foreach (Collider col in collidersToEnableOnActivation) { col.enabled = true; }
                         }
+
+                        anim.SetTrigger(triggerStringToActivate);
+                        if (isThereALightToTurnOn && objectWithLightSwitch != null) {
+                            objectWithLightSwitch.GetComponent<SwitchLight>().lightOn = false;
+                        }
+                        if (isThereAnOnOffLightOnTheActivationSwitch && activationPointSwitchLightOnOff != null) {
+                            if (!ActivationSwitchLightOnOffInversion) {
+                                activationPointSwitchLightOnOff.intensity = 0;
+                            }
+                            else {
+                                activationPointSwitchLightOnOff.intensity = 1;
+                            }
+                        }
+
+                        currentAnimationClipLength = ReturnClipLengthFromClipName(activationAnimClipName);
+
+                        lastTimeHittingSwitch = Time.time;
+
+                        isOn = true;
                     }
+                    else {
 
-                    currentAnimationClipLength = ReturnClipLengthFromClipName(deactivationAnimClipName);
+                        if (collidersToDisableOnDeactivation.Count > 0) {
+                            foreach (Collider col in collidersToDisableOnDeactivation) { col.enabled = false; }
+                        }
 
-                    lastTimeHittingSwitch = Time.time;
+                        if (collidersToEnableOnDeactivation.Count > 0) {
+                            foreach (Collider col in collidersToEnableOnDeactivation) { col.enabled = true; }
+                        }
 
-                    isOn = false;
+                        anim.SetTrigger(triggerStringToDeactivate);
+                        if (isThereALightToTurnOn && objectWithLightSwitch != null) {
+                            objectWithLightSwitch.GetComponent<SwitchLight>().lightOn = true;
+                        }
+                        if (isThereAnOnOffLightOnTheActivationSwitch && activationPointSwitchLightOnOff != null) {
+                            if (!ActivationSwitchLightOnOffInversion) {
+                                activationPointSwitchLightOnOff.intensity = 1;
+                            }
+                            else {
+                                activationPointSwitchLightOnOff.intensity = 0;
+                            }
+                        }
+
+                        currentAnimationClipLength = ReturnClipLengthFromClipName(deactivationAnimClipName);
+
+                        lastTimeHittingSwitch = Time.time;
+
+                        isOn = false;
+                    }
                 }
             }
         }

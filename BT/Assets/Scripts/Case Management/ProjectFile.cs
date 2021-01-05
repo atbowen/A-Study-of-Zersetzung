@@ -8,20 +8,10 @@ public class ProjectFile
     public string projectName;
 
     public List<CrimeScene> crimeScenes;
-    public List<EvidenceData> piecesOfEvidence;
-
-    public EvidenceData currentEvidence;
 
     public List<NMRResults> NMRDataActual;
+    public List<ImageToAnalyze> imagesToAnalyzeActual;
     public List<TrajectorySet> trajDataActual;
-    public List<MaterialsID> matSciMatchActual;
-
-    public List<NMRRefResults> NMRRefSet;
-    public List<TrajectoryRefSet> trajRefSet;
-
-    public NMRResults currentNMRData;
-    public TrajectorySet currentTrajSet;
-    public MaterialsID currentMaterialsID;
 
     public bool openAndActive;
     public string nothingCompleteStatus, infraCompleteStatus, trajCompleteStatus,

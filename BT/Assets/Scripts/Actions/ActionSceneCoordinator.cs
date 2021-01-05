@@ -98,7 +98,7 @@ public class ActionSceneCoordinator : MonoBehaviour
     public void TriggerAction(Action singleAction) {
         if (GameObject.Find(singleAction.ActorName) != null) {
             Transform actionActor = GameObject.Find(singleAction.ActorName).transform;
-            if (actionActor.Find("ID").GetComponent<ID>() != null) {
+            if (actionActor.GetComponent<ID>() != null) {
                 if (RequiredItemsCheckForSingleAction(singleAction)) {
                     SearchAndDoAction(singleAction);
                 }

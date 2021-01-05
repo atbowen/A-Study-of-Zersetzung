@@ -20,22 +20,29 @@ public class MailScreen : MonoBehaviour {
     private enum EncryptionState {Hidden, MailList, Initialize, Hacking, Hacked};
     private EncryptionState Crypto;
 
-    private int numOfOnscreenLinesInMailText;
-    private int mailListSelectionHeight, currentEmailListIndex;
+    [SerializeField]
+    private int numOfOnscreenLinesInMailText, numOfEMailItemSlotsInList;
+    private int mailListSelectionHeight, currentEmailListIndex, currentListVisibleIndex;
+
+    private Vector2 mailListSelectionInitialPosition;
 
     // Start is called before the first frame update
     void Start()
     {
         currentEmailListIndex = 0;
+        currentListVisibleIndex = 0;
         currentEMail = emailList[currentEmailListIndex];
         currentEMail.isNew = false;
 
         mailListText.supportRichText = true;
+        mailRecipient.supportRichText = true;
+        mailSender.supportRichText = true;
+
+        mailListSelectionInitialPosition = mailListSelection.rectTransform.anchoredPosition;
 
         ShowEMail(false);
 
-        numOfOnscreenLinesInMailText = 13;                      // This is how many lines will fit in the mail text window!
-        mailListSelectionHeight = 14;                            // This is the height of the email selector box (and also the height of a line of text)
+        mailListSelectionHeight = (int)Mathf.Floor(mailListSelection.rectTransform.rect.height);
 
         Crypto = EncryptionState.Hidden;
     }
@@ -58,7 +65,7 @@ public class MailScreen : MonoBehaviour {
                 break;
             case EncryptionState.MailList:
                 currentEMail = emailList[currentEmailListIndex];
-                AssignTextAndBgd(currentEMail);
+                AssignTextAndBgd(currentEMail, currentEmailListIndex, currentListVisibleIndex);
                 ShowAttachments(currentEMail, true);
 
                 if (mailSelected) {
@@ -108,27 +115,56 @@ public class MailScreen : MonoBehaviour {
         mailListText.enabled = showOrNo;
     }
 
-    private void AssignTextAndBgd(EMail email) {
-        mailRecipient.text = "REC:  " + email.receiverInfo;
-        mailSender.text = "CO:  " + email.senderInfo;
+    private void AssignTextAndBgd(EMail email, int curMailIndex, int curListIndex) {
+
+        string rcp = ColorUtility.ToHtmlStringRGBA(new Color(mailRecipient.color.r, mailRecipient.color.g, mailRecipient.color.b, mailRecipient.color.a * 0.7f));
+        string sen = ColorUtility.ToHtmlStringRGBA(new Color(mailSender.color.r, mailSender.color.g, mailSender.color.b, mailSender.color.a * 0.7f));
+
+        mailRecipient.text = "<color=#" + rcp + ">Rcp:  </color>" + email.receiverInfo;
+        mailSender.text = "<color=#" + sen + ">C/O:  </color>" + email.senderInfo;
         mailText.text = email.bodyToShow;
         mailTextBgd.texture = email.imageBody;
 
         mailListText.text = "";
-        for (int i = 0; i < emailList.Count; i++) {
-            int stringSenderLength = emailList[i].senderInfo.Length;
-            int stringBodyLength = emailList[i].bodyToShow.Length;
 
-            string COColor = ColorUtility.ToHtmlStringRGBA(mailListCOColor);
-            string subjectColor = ColorUtility.ToHtmlStringRGBA(mailListSubjectColor);
+        if (emailList.Count < numOfEMailItemSlotsInList) {
 
-            if (emailList[i].isNew) {
-                mailListText.text = mailListText.text + "<color=#" + COColor + "><CO:  " + emailList[i].senderInfo.Substring(0, Mathf.Min(10, stringSenderLength)) + "..</color>\n" + "<color=#" + subjectColor + ">[" +
-                                    emailList[i].bodyToShow.Substring(0, Mathf.Min(11, stringBodyLength)) + "..]></color>\n";
-            } else {
-                mailListText.text = mailListText.text + "<CO:  " + emailList[i].senderInfo.Substring(0, Mathf.Min(10, stringSenderLength)) + "..\n" + "[" +
-                                    emailList[i].bodyToShow.Substring(0, Mathf.Min(11, stringBodyLength)) + "..]>\n";
+            for (int i = 0; i < emailList.Count; i++) {
+                int stringSenderLength = emailList[i].senderInfo.Length;
+                int stringBodyLength = emailList[i].bodyToShow.Length;
+
+                string COColor = ColorUtility.ToHtmlStringRGBA(mailListCOColor);
+                string subjectColor = ColorUtility.ToHtmlStringRGBA(mailListSubjectColor);
+
+                if (emailList[i].isNew) {
+                    mailListText.text = mailListText.text + "<color=#" + COColor + ">" + emailList[i].senderInfo.Substring(0, Mathf.Min(8, stringSenderLength)) + "</color>\n                           (!)\n";
+                }
+                else {
+                    mailListText.text = mailListText.text + "" + emailList[i].senderInfo.Substring(0, Mathf.Min(8, stringSenderLength)) + "\n\n";
+                }
             }
+
+        }
+        else {
+
+            for (int i = 0; i < numOfEMailItemSlotsInList; i++) {
+
+                int offset = i + (currentEmailListIndex - currentListVisibleIndex);
+
+                int stringSenderLength = emailList[offset].senderInfo.Length;
+                int stringBodyLength = emailList[offset].bodyToShow.Length;
+
+                string COColor = ColorUtility.ToHtmlStringRGBA(mailListCOColor);
+                string subjectColor = ColorUtility.ToHtmlStringRGBA(mailListSubjectColor);
+
+                if (emailList[offset].isNew) {
+                    mailListText.text = mailListText.text + "<color=#" + COColor + ">" + emailList[offset].senderInfo.Substring(0, Mathf.Min(8, stringSenderLength)) + "</color>\n                           (!)\n";
+                }
+                else {
+                    mailListText.text = mailListText.text + "" + emailList[offset].senderInfo.Substring(0, Mathf.Min(8, stringSenderLength)) + "\n\n";
+                }
+            }
+
         }
     }
 
@@ -220,18 +256,58 @@ public class MailScreen : MonoBehaviour {
     }
 
     public void EmailListCycleUp() {
-        if (currentEmailListIndex > 0)  { mailListSelection.rectTransform.anchoredPosition += new Vector2(0, mailListSelectionHeight); }
-        else                            { mailListSelection.rectTransform.anchoredPosition += new Vector2(0, (-mailListSelectionHeight * (emailList.Count - 1))); }
 
-        currentEmailListIndex = (currentEmailListIndex + emailList.Count - 1) % emailList.Count;
+        if (currentListVisibleIndex == 0) {
+            if (currentEmailListIndex == 0) {
+                if (numOfEMailItemSlotsInList > emailList.Count) {
+                    currentListVisibleIndex = emailList.Count - 1;
+                    currentEmailListIndex = emailList.Count - 1;
+                    mailListSelection.rectTransform.anchoredPosition = mailListSelectionInitialPosition + new Vector2(0, (-mailListSelectionHeight * currentListVisibleIndex));
+                }
+                else {
+                    currentListVisibleIndex = numOfEMailItemSlotsInList - 1;
+                    currentEmailListIndex = emailList.Count - 1;
+                    mailListSelection.rectTransform.anchoredPosition = mailListSelectionInitialPosition + new Vector2(0, (-mailListSelectionHeight * (numOfEMailItemSlotsInList - 1)));
+                }
+            }
+            else {
+                currentEmailListIndex--;
+            }
+        }
+        else {
+            currentListVisibleIndex--;
+            currentEmailListIndex--;
+            mailListSelection.rectTransform.anchoredPosition = mailListSelectionInitialPosition + new Vector2(0, (-mailListSelectionHeight * currentListVisibleIndex));
+        }
+
         emailList[currentEmailListIndex].isNew = false;
     }
     
     public void EmailListCycleDown() {
-        if (currentEmailListIndex < (emailList.Count - 1))  { mailListSelection.rectTransform.anchoredPosition += new Vector2(0, -mailListSelectionHeight);} 
-        else                                                { mailListSelection.rectTransform.anchoredPosition += new Vector2(0, (mailListSelectionHeight * (emailList.Count - 1))); }
 
-        currentEmailListIndex = (currentEmailListIndex + emailList.Count + 1) % emailList.Count;
+        if (currentListVisibleIndex == numOfEMailItemSlotsInList - 1) {
+            if (currentEmailListIndex == emailList.Count - 1) {
+                currentListVisibleIndex = 0;
+                currentEmailListIndex = 0;
+                mailListSelection.rectTransform.anchoredPosition = mailListSelectionInitialPosition;
+            }
+            else {
+                currentEmailListIndex++;
+            }
+        }
+        else {
+            if (currentEmailListIndex == emailList.Count - 1) {
+                currentListVisibleIndex = 0;
+                currentEmailListIndex = 0;
+                mailListSelection.rectTransform.anchoredPosition = mailListSelectionInitialPosition;
+            }
+            else {
+                currentListVisibleIndex++;
+                currentEmailListIndex++;
+                mailListSelection.rectTransform.anchoredPosition = mailListSelectionInitialPosition + new Vector2(0, (-mailListSelectionHeight * currentListVisibleIndex));
+            }            
+        }
+
         emailList[currentEmailListIndex].isNew = false;
     }
 }

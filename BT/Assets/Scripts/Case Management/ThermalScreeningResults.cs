@@ -9,12 +9,14 @@ public class ThermalScreeningResults : EvidenceData
     public Texture calorimetryChart;
     public ThermalDataPoint[] maxima;
 
-    public override void SetProjectHandlerMode() {
-        projHandler = FindObjectOfType<ProjectHandler>();
-        projHandler.activeDataType = ProjectHandler.DataType.ThermalView;
+    public string additionalComments;
+
+    public override void DetermineMatches() {
+        
     }
 
-    public override void UpdateResultsAndNotes() {
+    public override string GetResults() {
+        ProjectHandler projHandler = FindObjectOfType<ProjectHandler>();
         projHandler.activeDataWindow.texture = this.calorimetryChart;
 
         string results;
@@ -30,5 +32,19 @@ public class ThermalScreeningResults : EvidenceData
 
         projHandler.resultsTxt.text = results;
         projHandler.notesTxt.text = this.notes;
+
+        return results;
+    }
+
+    public override string GetResults(int referenceIndexToShow) {
+        return additionalComments;
+    }
+
+    public override string GetNotes() {
+        return additionalComments;
+    }
+
+    public override string GetNotes(int referenceIndexToShow) {
+        return notes;
     }
 }

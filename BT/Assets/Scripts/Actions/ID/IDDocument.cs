@@ -14,7 +14,11 @@ public class IDDocument : ID
     private Transform useRefPosition;
 
     public override void DisplayID() {
-        scanner.LookingAtNote(this);
+        scanner.LookingAtUnscannable(this);
+    }
+
+    public override void DisplayID(IDCharacter charID) {
+
     }
 
     public override void Activate() {
@@ -58,21 +62,25 @@ public class IDDocument : ID
         rigid.isKinematic = true;
         coll.enabled = false;
 
-        if (bCam.bodyControl && !camMaster.rightEyeLodged) {
-            useRefPosition = leftEye.transform.Find("DocumentHandler");
-        }
-        else if (bCam.bodyControl && camMaster.rightEyeLodged) {
-            useRefPosition = rightEye.transform.Find("DocHandlerBothEyesOffset");
-        }
-        else {
-            useRefPosition = rightEye.transform.Find("DocumentHandler");
-        }
+        //if (bCam.bodyControl && !camMaster.rightEyeLodged) {
+        //    useRefPosition = leftEye.transform.Find("DocumentHandler");
+        //}
+        //else if (bCam.bodyControl && camMaster.rightEyeLodged) {
+        //    useRefPosition = rightEye.transform.Find("DocHandlerBothEyesOffset");
+        //}
+        //else {
+        //    useRefPosition = rightEye.transform.Find("DocumentHandler");
+        //}
 
-        this.transform.parent.parent = useRefPosition.transform;
-        this.transform.parent.localRotation = Quaternion.identity;
-        this.transform.parent.Rotate(90, 180, 0, Space.Self);
+        useRefPosition = ted.transform.Find("Held Object Position");
 
-        this.transform.parent.position = useRefPosition.position + useRefPosition.TransformDirection(0, 0, 5);
+        this.transform.parent = useRefPosition.transform;
+        this.transform.localRotation = Quaternion.identity;
+        this.transform.Rotate(90, 180, 0, Space.Self);
+
+        //this.transform.position = useRefPosition.position + useRefPosition.TransformDirection(0, 0, 5);
+
+        this.transform.localPosition = Vector3.zero;
 
         //bCam.holdingDocument = true;
 
@@ -87,15 +95,17 @@ public class IDDocument : ID
     }
 
     public void DropDocument() {
-        if (camMaster.rightEyeLodged) {
-            //this.transform.parent.Translate(0, 0, 25, Space.Self);
+        //if (camMaster.rightEyeLodged) {
+        //    //this.transform.parent.Translate(0, 0, 25, Space.Self);
 
-            this.transform.parent.position = ted.transform.position + ted.transform.TransformDirection(0, -10, 40);
-            this.transform.parent.parent = null;
-        } else {
-            this.transform.parent.Translate(0, 0, 20, Space.Self);
-            this.transform.parent.parent = null;
-        }
+        //    this.transform.position = ted.transform.position + ted.transform.TransformDirection(0, -10, 40);
+        //    this.transform.parent = null;
+        //} else {
+        //    this.transform.Translate(0, 0, 20, Space.Self);
+        //    this.transform.parent = null;
+        //}
+
+        this.transform.parent = null;
 
         bCam.InitiateUseActionWithAnimationTrigger(tedTossAnimationString, tedTossAnimationTime, false);
 
@@ -107,7 +117,7 @@ public class IDDocument : ID
         rigid.useGravity = true;
         rigid.detectCollisions = true;
 
-        rigid.AddForce(useRefPosition.forward * 100);        
+        rigid.AddForce(-useRefPosition.forward * 30);        
 
         useRefPosition = null;
 

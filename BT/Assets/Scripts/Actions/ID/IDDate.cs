@@ -11,4 +11,8 @@ public class IDDate : ID
     public override void DisplayID() {
         scanner.EnableInfoPanelWithID(this);
     }
+
+    public override void DisplayID(IDCharacter charID) {
+
+    }
 }

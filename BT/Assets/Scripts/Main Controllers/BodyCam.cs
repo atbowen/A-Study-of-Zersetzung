@@ -5,7 +5,14 @@ using UnityEngine.UI;
 
 public class BodyCam : MonoBehaviour {
 
-    public Transform headActual;
+    // Camera position on Ted's face when switching between Ted and dislodged right eye
+    public Transform headVision;
+
+    // Everything needed for switching between Ted and Stealth Ted
+    public Transform bodyMesh, headMesh, leftEyeMesh, leftEyepatchMesh, cape, docHoldingHand, usingHand;
+    public Mesh tedMesh, tedHeadMesh, tedEyeMesh, tedEyepatchMesh, tedOfTheNightMesh, tedHeadOfTheNightMesh;
+    public Material[] tedMaterials, tedHeadMaterials, tedEyeMaterials, tedEyepatchMaterials, tedOfTheNightMaterials, tedHeadOfTheNightMaterials, tedEyeOfTheNightMaterials;
+
     public Vector3 headInitialPos;
     public Quaternion headInitialRot;
     public float lookSensitivity, vertLookLimiter;                                                                                   // Mouse motion speed factor
@@ -13,7 +20,8 @@ public class BodyCam : MonoBehaviour {
     public float idleSpeedAnim, walkSpeedAnim, runSpeedAnim, sneakSpeedAnim, sneakRunSpeedAnim;
     public float movementSpeedMultiplier, sidewaysRunSlowdownFactor, sidewaysStepSlowdownFactor, backwardsMovingSlowdownFactor, sidestepAnimationSpeedupFactor,
                     moveSpeedSlopeFactor, animSpeedSlopeFactor;
-    
+
+    public bool runMode, sneakMode;                                                                                           // running vs. walking toggle
     public float animSpeed;
     public float jumpHeight;                                                                                        // How are we handling jumping?  Avoid it altogether??
     public float zoomFactor, scrollWheelSensitivity;
@@ -38,7 +46,7 @@ public class BodyCam : MonoBehaviour {
     private Animator anim, animHead;
     private Rigidbody rigid;
     private Collider tedCollider;
-    private SkinnedMeshRenderer meshRend;
+    private SkinnedMeshRenderer tedSkinnedMeshRend;
     private TeddyRightEye rightEye;
     private TeddyLeftEye leftEye;
     private GameObject leftEyeCam, rightEyeCam;                                           // Head reference needed for when we figure out how to animate head during animations...
@@ -61,8 +69,8 @@ public class BodyCam : MonoBehaviour {
 
     public enum MovementModes { OnFoot, Driving, Flying, Inspecting};
     private MovementModes movementScheme;
-
-    public bool runMode, sneakMode;                                                                                           // running vs. walking toggle
+    
+    private bool tedIsOfTheNight;
     private bool isGrounded;                                                                                        // Will only be needed if there's jumping and falling
     private bool isMovingForward, isMovingBackwards, isRightStepping, isLeftStepping;                                                                                         // Switch used for controlling when walk animation starts/ends
     private float moveSpeed;                                                                                        // Move speed   
@@ -72,7 +80,11 @@ public class BodyCam : MonoBehaviour {
     private float vertLookLimHi =  75;                                                                              // Vertical look limit, high
     private float sneakToggleTime, curSneakToggleTime, sneakAnimationWeight, sidewaysRunSlowdown, sidewaysStepSlowdown, backwardsMovingSlowdown, sidestepAnimationSpeedup;
     private float defaultUsingFreezeTime;
-    private bool isUsing, useFreeze, isInVehicle;
+    private bool isUsing, useFreeze, isHoldingItem, isReadyingItem, docJustPickedUp, docJustDropped, isInVehicle, isVaulting;
+
+    private IDItem currentHeldItem;
+
+    private Vector3 positionAfterVaulting;
 
     private IDVehicle currentVehicleID;
     private CarControls currentCarControls;
@@ -105,11 +117,11 @@ public class BodyCam : MonoBehaviour {
         anim                = ted.GetComponent<Animator>();
         rigid               = ted.GetComponent<Rigidbody>();
         tedCollider         = ted.GetComponent<Collider>();
-        meshRend            = ted.transform.Find("test_Ted").GetComponent<SkinnedMeshRenderer>();
+        tedSkinnedMeshRend            = ted.transform.Find("test_Ted").GetComponent<SkinnedMeshRenderer>();
         tedHead             = FindObjectOfType<TeddyHead>();
         animHead            = tedHead.GetComponent<Animator>();
 
-        IDChar              = ted.transform.Find("ID").GetComponent<IDCharacter>();
+        IDChar              = ted.transform.GetComponent<IDCharacter>();
 
         leftEye     = FindObjectOfType<TeddyLeftEye>();
         rightEye    = FindObjectOfType <TeddyRightEye>();
@@ -128,7 +140,7 @@ public class BodyCam : MonoBehaviour {
 
         trashcan = FindObjectOfType<Disposal>();
 
-        headd = headActual;
+        headd = headVision;
 
         bodyControl = true;                                                                                         // Start with body control switched on
         bodyCamActive = true;                                                                                       // Start with view through body camera
@@ -163,21 +175,20 @@ public class BodyCam : MonoBehaviour {
         useRefPosition = null;
         usingFreezeTimerRef = 0;
         isUsing = false;
+        isHoldingItem = false;
+        isReadyingItem = false;
         useFreeze = false;
         defaultUsingFreezeTime = usingFreezeTime;
+        isVaulting = false;
 
         docHeld = null;
         holdingDocument = false;
-
-        curSelectorPosX = 0f;
-        curSelectorPosY = 0f;
-        //curSelectorStickX = 0f;
-        //curSelectorStickY = 0f;
-
-        curSteeringHandsPosX = 0;  // Zero is the clamp value of the neutral steering position
+        docJustPickedUp = false;
+        docJustDropped = false;
 
         movementScheme = MovementModes.OnFoot;
 
+        curSteeringHandsPosX = 0;  // Zero is the clamp value of the neutral steering position
         enteringVehicle = false;
         exitingVehicle = false;
         currentLeftArmDrivingAnimationState = "Left Arm Driving.Steering";
@@ -191,6 +202,10 @@ public class BodyCam : MonoBehaviour {
         headInitialRot = tedHead.transform.localRotation;
 
         IDChar.RecordHeadInitialTransform();
+
+        tedIsOfTheNight = false;
+        cape.GetComponent<SkinnedMeshRenderer>().enabled = false;
+        cape.GetComponent<Cloth>().enabled = false;
     }
 
     // Update is called once per frame
@@ -213,6 +228,7 @@ public class BodyCam : MonoBehaviour {
             }
         }
 
+        // If the comms window isn't open
         if (camControl.commsEnabled == false) {
 
             //// This prevents overlapping actions
@@ -230,24 +246,121 @@ public class BodyCam : MonoBehaviour {
             //    }
             //}
 
-            
+            // This prevents overlapping actions
+            if (isUsing) {
 
-            // Determine what a right trigger press does when player is controlling a living Ted who is not mid-action
-            if ((bodyControl && !useFreeze && !dead)) { //|| (rightEye.rightEyeActive && !useFreeze)) {
+                if (Time.time - usingFreezeTimerRef > usingFreezeTime) {
 
+                    if (docJustPickedUp && docHeld) {
+                        docHeld.transform.SetParent(docHoldingHand);
+                    }
+
+                    isUsing = false;
+                    useFreeze = false;
+
+                    if (!IsHoldingDocument()) {
+                        anim.SetBool("Using", false);
+                    }
+                    //anim.SetLayerWeight(6, 0);              // Set weight of Using layer to zero
+
+
+                    if (isVaulting) {
+                        isVaulting = false;
+                        ted.transform.position = positionAfterVaulting;
+                        SwitchAnimationStateToIdle();
+                    }
+
+                    if (actionsAfterUsing.actions.Count > 0) {
+                        actionCoord.TriggerParallelActions(actionsAfterUsing);
+                    }
+                    actionsAfterUsing.actions.Clear();
+                }
+            }
+
+            docJustPickedUp = false;
+
+            // Without this check, a single trigger press can drop the document, then snatch it up during the same frame
+            docJustDropped = false;
+
+            // If the player is controlling Ted, he's not in the middle of a use action, and he isn't dead
+            if ((bodyControl && !useFreeze && !dead)) {
+
+                // Left trigger readies a held item
+                if ((Input.GetAxis("Left Trigger") > 0.1)) {
+                    if (!isReadyingItem) {
+                        if (isHoldingItem && currentHeldItem != null) {
+                            if (currentHeldItem.canBeReadied) {
+                                isReadyingItem = true;
+
+                                //currentHeldItem.isReadied = true;
+                                //if (currentHeldItem.readyingPoseTriggerString != null) { anim.SetTrigger(currentHeldItem.readyingPoseTriggerString); }
+                                currentHeldItem.ReadyItem();
+                            }
+                        }
+                        else {
+                            isReadyingItem = true;
+                            anim.SetTrigger("Putting up hands");
+                        }
+                    }
+                    else {
+                        if (Input.GetAxis("Right Trigger") > 0.1) {
+                            if (currentHeldItem) {
+                                if (currentHeldItem.canBeUsed) {
+
+                                    currentHeldItem.UseEquippedItem();
+
+                                    //isUsing = true;
+                                    //useFreeze = true;
+                                    //usingFreezeTime = currentHeldItem.usingTime;
+                                    //usingFreezeTimerRef = Time.time;
+                                }
+                            }
+                        }
+                    }
+                }
+                else if ((Input.GetAxis("Left Trigger") < 0.1) && isReadyingItem) {
+                    isReadyingItem = false;
+                    if (currentHeldItem != null) {
+                        currentHeldItem.UnreadyItem();
+                    }
+                }
+
+                // Vault over object if vaultable object is found and conditions are met
+                // Uses the Using pattern, employs the Using animation layer
+                if (Input.GetButtonDown("Triangle Button")) {
+                    if (IDChar.GetPotentialVaultObjects().Count > 0) {
+                        List<IDVaultObject> vObjs = IDChar.GetPotentialVaultObjects();
+                        VaultPosition acceptableVPos = null;
+
+                        foreach (IDVaultObject vObj in vObjs) {
+                            foreach (VaultPosition vPos in vObj.vaultPositions) {
+                                if (vPos.CanVaultOn(ted.transform)) { acceptableVPos = vPos; }
+                            }
+                        }
+
+                        if (acceptableVPos != null) {
+                            if (acceptableVPos.vaultAnimationTriggerString != null && acceptableVPos.vaultAnimationDuration > 0) {
+                                acceptableVPos.SetStartingPositionAndRotationOfVault(ted.transform);
+                                SetMovementLayerWeightsToZero();
+                                anim.SetLayerWeight(6, 1);
+                                InitiateUseActionWithAnimationTrigger(acceptableVPos.vaultAnimationTriggerString, acceptableVPos.vaultAnimationDuration, acceptableVPos.freezeControlDuringVault);
+                                positionAfterVaulting = acceptableVPos.GetEndPositionAfterVaulting(ted.transform);
+                                isVaulting = true;
+                            }
+                        }
+                    }
+                }
+
+                // Right trigger is the main use button--these are the contextual actions
                 if (((Input.GetAxis("Triggers") > 0.1) || Input.GetKeyDown(KeyCode.Mouse0)) &&
                         Time.time - camControl.keyTimerRef > camControl.keyTimer && !triggerPressed) {
-                   
+
                     // If tool wheel open, trigger press selects highlighted tool
                     if (toolSelect.toolSelectorOpen) {
                         toolSelect.EnableTool();
-                    } else {             // IF TRIGGER PRESS AND TOOL SELECTOR WHEEL NOT OPEN /////////
+                    }
+                    else {             // IF TRIGGER PRESS AND TOOL SELECTOR WHEEL NOT OPEN /////////
 
-                        // If holding document, drop it <--- MIGHT BE UNNECESSARY
-                        //if (docHeld != null && docHeld.documentBeingHeld) {
-                        //    docHeld.buttonPressed = true;
-                        //}
-                        
                         // Without this check, a single trigger press can drop the document, then snatch it up during the same frame
                         bool docDroppedThisFrame = false;
 
@@ -260,17 +373,15 @@ public class BodyCam : MonoBehaviour {
 
                         // Set useRefPosition variable for origin of raycast--use left eye if controlling body with right eye out, otherwise use this camera location
                         if (bodyControl && !camControl.rightEyeLodged) {
-                            useRefPosition = leftEye.transform;
-                        } else {
+                            useRefPosition = headVision;
+                        }
+                        else {
                             useRefPosition = this.transform;
                         }
 
-                        //useRefPosition.localPosition = Vector3.zero;              // <-- Not used???
-                        //useRefPosition.localRotation = Quaternion.identity;
-
                         // Determines use action based on what we're looking at
                         RaycastHit hit;
-                        if (!IsHoldingDocument() && Physics.Raycast(useRefPosition.position, useRefPosition.TransformDirection(Vector3.forward), 
+                        if (!IsHoldingDocument() && Physics.Raycast(useRefPosition.position, useRefPosition.TransformDirection(Vector3.forward),
                             out hit, rightEye.maxIDRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) {
 
                             ID targetedID = null;
@@ -278,24 +389,23 @@ public class BodyCam : MonoBehaviour {
                             if (hit.collider.GetComponent<PointerToID>()) {
                                 targetedID = hit.collider.GetComponent<PointerToID>().desiredID;
                             }
-                            else if (hit.collider.transform.Find("ID") != null) {
-                                targetedID = hit.collider.transform.Find("ID").GetComponent<ID>();
+                            else if (hit.collider.transform.GetComponent<ID>()) {
+                                targetedID = hit.collider.transform.GetComponent<ID>();
                             }
 
                             if (targetedID != null &&
-                                (hit.collider.ClosestPoint(useRefPosition.position) - useRefPosition.position).magnitude < targetedID.maxDistanceToActivate) {        
+                                (hit.collider.ClosestPoint(useRefPosition.position) - useRefPosition.position).magnitude < targetedID.maxDistanceToActivate) {
 
                                 if (!docHeld && !docDroppedThisFrame) {
                                     // Activate the object holding the ID! (pick up IDItem, use IDInteractable, etc.)
                                     if (targetedID.GetType() == typeof(IDVehicle)) {
                                         IDVehicle vehicleID = (IDVehicle)targetedID;
-                                        vehicleID.SetDriversID(ted.transform.Find("ID").GetComponent<ID>());
+                                        vehicleID.SetDriversID(ted.transform.GetComponent<IDCharacter>());
 
                                         targetedID.Activate();
                                         targetedID.AddToEvidencePool();
                                     }
-                                    else
-                                    {
+                                    else {
                                         targetedID.Activate();
                                         targetedID.AddToEvidencePool();
                                     }
@@ -311,76 +421,109 @@ public class BodyCam : MonoBehaviour {
                 // Set triggerPressed to true if either trigger is pressed beyond threshold
                 if (Mathf.Abs(Input.GetAxis("Triggers")) > 0.1) {
                     triggerPressed = true;
-                } else { triggerPressed = false; }
-            }
-
-
-            if (Input.GetAxis("D-Pad Up Down") < 0 && !camControl.gamePaused) {
-                if (cam.fieldOfView < 100) {
-                    cam.fieldOfView += zoomFactor;
                 }
-            } else if (Input.GetAxis("D-Pad Up Down") > 0 && !camControl.gamePaused) {
-                if (cam.fieldOfView > 5) {
-                    cam.fieldOfView -= zoomFactor;
-                }
-            }
+                else { triggerPressed = false; }
 
-            if (Input.GetAxis("Mouse ScrollWheel") < 0 && !camControl.gamePaused) {
-                if (cam.fieldOfView < 100) {
-                    cam.fieldOfView += scrollWheelSensitivity;
-                }
-            } else if (Input.GetAxis("Mouse ScrollWheel") > 0 && !camControl.gamePaused) {
-                if (cam.fieldOfView > 5) {
-                    cam.fieldOfView -= scrollWheelSensitivity;
-                }
-            }
 
-            FOVtext.text = ((int)cam.fieldOfView).ToString();
 
-            if (bodyControl && !useFreeze && !dead) {                                                                                          // If we're controlling the body...
+                //if (Input.GetAxis("D-Pad Up Down") < 0 && !camControl.gamePaused) {
+                //    if (cam.fieldOfView < 100) {
+                //        cam.fieldOfView += zoomFactor;
+                //    }
+                //} else if (Input.GetAxis("D-Pad Up Down") > 0 && !camControl.gamePaused) {
+                //    if (cam.fieldOfView > 5) {
+                //        cam.fieldOfView -= zoomFactor;
+                //    }
+                //}
 
-                switch (movementScheme) {
+                //if (Input.GetAxis("Mouse ScrollWheel") < 0 && !camControl.gamePaused) {
+                //    if (cam.fieldOfView < 100) {
+                //        cam.fieldOfView += scrollWheelSensitivity;
+                //    }
+                //} else if (Input.GetAxis("Mouse ScrollWheel") > 0 && !camControl.gamePaused) {
+                //    if (cam.fieldOfView > 5) {
+                //        cam.fieldOfView -= scrollWheelSensitivity;
+                //    }
+                //}
 
-                    case MovementModes.OnFoot:
+                //FOVtext.text = ((int)cam.fieldOfView).ToString();
 
-                        //if (driverTedMeshRend.enabled) {
-                        //    driverTedMeshRend.enabled = false;
-                        //    ted.transform.Find("ID").GetComponent<IDCharacter>().head.SetParent(ted.transform.Find("ID").GetComponent<IDCharacter>().parentBoneOfHead);
-                        //    tedHead.transform.localPosition = headInitialPos;
-                        //    tedHead.transform.localRotation = headInitialRot;
-                        //}
+                // useFreeze needs to be checked again because its value could have been changed in previous lines for the same frame
+                if (!useFreeze) {
+                    switch (movementScheme) {
 
-                        meshRend.enabled = false;
-                        ted.transform.Find("ID").GetComponent<IDCharacter>().head.SetParent(null);
+                        case MovementModes.OnFoot:
 
-                        // This prevents overlapping actions
-                        if (isUsing) {
-                            if (Time.time - usingFreezeTimerRef > usingFreezeTime) {
-                                isUsing = false;
-                                useFreeze = false;
-                                anim.SetBool("Using", false);
-                                anim.SetLayerWeight(3, 0);              // Set weight of Using layer to zero
-                                                                        //anim.SetBool("Entering Car", false);
+                            //tedSkinnedMeshRend.enabled = false;
+                            //ted.transform.GetComponent<IDCharacter>().head.SetParent(null);
 
-                                if (actionsAfterUsing.actions.Count > 0) {
-                                    actionCoord.TriggerParallelActions(actionsAfterUsing);
-                                }
-                                actionsAfterUsing.actions.Clear();
-                            }
-                        }
+                            //// This prevents overlapping actions
+                            //if (isUsing) {
 
-                        ted.transform.Find("ID").GetComponent<IDCharacter>().head.SetParent(ted.transform.Find("ID").GetComponent<IDCharacter>().parentBoneOfHead);
-                        tedHead.transform.localPosition = headInitialPos;
-                        tedHead.transform.localRotation = headInitialRot;
-                        meshRend.enabled = true;
+                            //    if (Time.time - usingFreezeTimerRef > usingFreezeTime) {
 
-                        if (bodyControl && !useFreeze && !dead) {
+                            //        Debug.Log("unfrozen!");
+
+                            //        isUsing = false;
+                            //        useFreeze = false;
+                            //        anim.SetBool("Using", false);
+                            //        anim.SetLayerWeight(3, 0);              // Set weight of Using layer to zero
+                            //                                                //anim.SetBool("Entering Car", false);
+
+                            //        if (actionsAfterUsing.actions.Count > 0) {
+                            //            actionCoord.TriggerParallelActions(actionsAfterUsing);
+                            //        }
+                            //        actionsAfterUsing.actions.Clear();
+                            //    }
+                            //}
+
+                            //ted.transform.GetComponent<IDCharacter>().head.SetParent(ted.transform.GetComponent<IDCharacter>().parentBoneOfHead);
+                            //tedHead.transform.localPosition = headInitialPos;
+                            //tedHead.transform.localRotation = headInitialRot;
+                            //tedSkinnedMeshRend.enabled = true;
 
                             if (Input.GetButton("Left Stick Press") && !camControl.gamePaused) { runMode = true; }                                        //      We can toggle running vs. walking
                             else { runMode = false; }
 
                             if (!runMode && Input.GetButtonDown("Right Stick Press") && !camControl.gamePaused && (Time.time - curSneakToggleTime > sneakToggleTime)) {
-                                sneakMode = !sneakMode;
+
+                                if (sneakMode) {
+
+                                    cape.GetComponent<SkinnedMeshRenderer>().enabled = false;
+                                    cape.GetComponent<Cloth>().enabled = false;
+
+                                    bodyMesh.GetComponent<SkinnedMeshRenderer>().materials = tedMaterials;
+                                    bodyMesh.GetComponent<SkinnedMeshRenderer>().sharedMesh = tedMesh;
+                                    headMesh.GetComponent<SkinnedMeshRenderer>().materials = tedHeadMaterials;
+                                    headMesh.GetComponent<SkinnedMeshRenderer>().sharedMesh = tedHeadMesh;
+                                    leftEyeMesh.GetComponent<MeshRenderer>().materials = tedEyeMaterials;
+                                    leftEyeMesh.GetComponent<MeshFilter>().mesh = tedEyeMesh;
+                                    leftEyepatchMesh.GetComponent<MeshRenderer>().materials = tedEyepatchMaterials;
+                                    leftEyepatchMesh.GetComponent<MeshFilter>().mesh = tedEyepatchMesh;
+
+                                    sneakMode = false;
+                                    tedIsOfTheNight = false;
+
+                                }
+                                else {
+
+                                    cape.GetComponent<SkinnedMeshRenderer>().enabled = true;
+                                    cape.GetComponent<Cloth>().enabled = true;
+
+                                    bodyMesh.GetComponent<SkinnedMeshRenderer>().materials = tedOfTheNightMaterials;
+                                    bodyMesh.GetComponent<SkinnedMeshRenderer>().sharedMesh = tedOfTheNightMesh;
+                                    headMesh.GetComponent<SkinnedMeshRenderer>().materials = tedHeadOfTheNightMaterials;
+                                    headMesh.GetComponent<SkinnedMeshRenderer>().sharedMesh = tedHeadOfTheNightMesh;
+                                    leftEyeMesh.GetComponent<MeshRenderer>().materials = tedEyeOfTheNightMaterials;
+                                    leftEyeMesh.GetComponent<MeshFilter>().mesh = tedEyeMesh;
+                                    leftEyepatchMesh.GetComponent<MeshRenderer>().materials = tedEyeOfTheNightMaterials;
+                                    leftEyepatchMesh.GetComponent<MeshFilter>().mesh = tedEyepatchMesh;
+
+                                    sneakMode = true;
+                                    tedIsOfTheNight = true;
+                                }
+
+                                //sneakMode = !sneakMode;
                                 curSneakToggleTime = Time.time;
                             }
 
@@ -413,17 +556,44 @@ public class BodyCam : MonoBehaviour {
 
                             if (distTrav > 0.01 && !dead) {
                                 if (runMode) {                                                                                          //      Set run speed or walk speed
+                                    anim.SetLayerWeight(0, 0);
                                     anim.SetLayerWeight(1, 1);
                                     anim.SetLayerWeight(3, 0);
-                                    if (isUsing) {
-                                        anim.SetLayerWeight(6, 1);
+                                    if (isUsing || IsHoldingDocument()) {
                                         anim.SetLayerWeight(4, 0);
+                                        anim.SetLayerWeight(5, 0);
+                                        anim.SetLayerWeight(6, 1);
+                                        anim.SetLayerWeight(7, 0);
+                                        anim.SetLayerWeight(8, 0);
+                                    } else if (isHoldingItem && !isReadyingItem) {
+                                        anim.SetLayerWeight(4, 0);
+                                        anim.SetLayerWeight(5, 0);
+                                        anim.SetLayerWeight(6, 0);
+                                        anim.SetLayerWeight(7, 1);
+                                        anim.SetLayerWeight(8, 0);
+
+                                        anim.SetLayerWeight(0, 0);
+                                        anim.SetLayerWeight(1, 0);
+                                        anim.SetLayerWeight(2, 0);
+                                        anim.SetLayerWeight(3, 0);
+                                        anim.SetLayerWeight(9, 0);
+                                        anim.SetLayerWeight(10, 0);
+                                    }
+                                    else if (isReadyingItem) {
+                                        anim.SetLayerWeight(4, 0);
+                                        anim.SetLayerWeight(5, 0);
+                                        anim.SetLayerWeight(6, 0);
+                                        anim.SetLayerWeight(7, 0);
+                                        anim.SetLayerWeight(8, 1);
                                     }
                                     else {
                                         anim.SetLayerWeight(4, 1);
+                                        anim.SetLayerWeight(5, 0);
                                         anim.SetLayerWeight(6, 0);
+                                        anim.SetLayerWeight(7, 0);
+                                        anim.SetLayerWeight(8, 0);
                                     }
-                                    anim.SetLayerWeight(0, 0);
+
                                     animHead.SetLayerWeight(1, 1);
 
                                     if (sneakMode) {
@@ -438,16 +608,37 @@ public class BodyCam : MonoBehaviour {
                                     }
                                 }
                                 else {
+                                    anim.SetLayerWeight(0, 1);
                                     anim.SetLayerWeight(1, 0);
-                                    if (isUsing) {
-                                        anim.SetLayerWeight(6, 1);
+                                    anim.SetLayerWeight(4, 0);
+                                    if (isUsing || IsHoldingDocument()) {
                                         anim.SetLayerWeight(3, 0);
+                                        anim.SetLayerWeight(5, 0);
+                                        anim.SetLayerWeight(6, 1);
+                                        anim.SetLayerWeight(7, 0);
+                                        anim.SetLayerWeight(8, 0);
+                                    } else if (isHoldingItem && !isReadyingItem) {
+                                        anim.SetLayerWeight(3, 0);
+                                        anim.SetLayerWeight(5, 0);
+                                        anim.SetLayerWeight(6, 0);
+                                        anim.SetLayerWeight(7, 1);
+                                        anim.SetLayerWeight(8, 0);
+                                    }
+                                    else if (isReadyingItem) {
+                                        anim.SetLayerWeight(3, 0);
+                                        anim.SetLayerWeight(5, 0);
+                                        anim.SetLayerWeight(6, 0);
+                                        anim.SetLayerWeight(7, 0);
+                                        anim.SetLayerWeight(8, 1);
                                     }
                                     else {
                                         anim.SetLayerWeight(3, 1);
+                                        anim.SetLayerWeight(5, 0);
                                         anim.SetLayerWeight(6, 0);
+                                        anim.SetLayerWeight(7, 0);
+                                        anim.SetLayerWeight(8, 0);
                                     }
-                                    anim.SetLayerWeight(4, 0);
+                                    
                                     animHead.SetLayerWeight(1, 0);
 
                                     if (sneakMode) {
@@ -463,6 +654,32 @@ public class BodyCam : MonoBehaviour {
                                 }
                             }
                             else {
+                                if (isUsing) {
+                                    anim.SetLayerWeight(3, 0);
+                                    anim.SetLayerWeight(4, 0);
+                                    anim.SetLayerWeight(5, 0);
+                                    anim.SetLayerWeight(6, 1);
+                                    anim.SetLayerWeight(7, 0);
+                                    anim.SetLayerWeight(8, 0);
+                                } else if (isHoldingItem && !isReadyingItem) {
+                                    anim.SetLayerWeight(3, 0);
+                                    anim.SetLayerWeight(4, 0);
+                                    anim.SetLayerWeight(5, 0);
+                                    anim.SetLayerWeight(6, 0);
+                                    anim.SetLayerWeight(7, 1);
+                                    anim.SetLayerWeight(8, 0);
+                                } else if (isReadyingItem) {
+                                    anim.SetLayerWeight(3, 0);
+                                    anim.SetLayerWeight(4, 0);
+                                    anim.SetLayerWeight(5, 0);
+                                    anim.SetLayerWeight(6, 0);
+                                    anim.SetLayerWeight(7, 0);
+                                    anim.SetLayerWeight(8, 1);
+                                } else {
+                                    anim.SetLayerWeight(6, 0);
+                                    anim.SetLayerWeight(7, 0);
+                                    anim.SetLayerWeight(8, 0);
+                                }
                                 animSpeedUnadj = idleSpeedAnim;
                             }
 
@@ -476,13 +693,34 @@ public class BodyCam : MonoBehaviour {
                                     sneakAnimationWeight += Time.deltaTime * 3;
                                 }
                                 anim.SetLayerWeight(2, sneakAnimationWeight);
-                                anim.SetLayerWeight(0, 0);
-                                anim.SetLayerWeight(1, 0);
-                                anim.SetLayerWeight(3, 0);
-                                anim.SetLayerWeight(4, 0);
+                                anim.SetLayerWeight(0, 1 - sneakAnimationWeight);
+                                //anim.SetLayerWeight(1, 0);
+                                //anim.SetLayerWeight(3, 0);
+                                //anim.SetLayerWeight(4, 0);
 
-                                if (isUsing) { anim.SetLayerWeight(6, 1); }
-                                else { anim.SetLayerWeight(5, sneakAnimationWeight); }
+                                //if (isUsing || IsHoldingDocument()) {
+                                //    anim.SetLayerWeight(5, 0);
+                                //    anim.SetLayerWeight(6, 1);
+                                //    anim.SetLayerWeight(7, 0);
+                                //    anim.SetLayerWeight(8, 0);
+                                //} else if (isHoldingItem && !isReadyingItem) {
+                                //    anim.SetLayerWeight(5, 0);
+                                //    anim.SetLayerWeight(6, 0);
+                                //    anim.SetLayerWeight(7, 1);
+                                //    anim.SetLayerWeight(8, 1);
+                                //}
+                                //else if (isReadyingItem) {
+                                //    anim.SetLayerWeight(5, 0);
+                                //    anim.SetLayerWeight(6, 0);
+                                //    anim.SetLayerWeight(7, 0);
+                                //    anim.SetLayerWeight(8, 1);
+                                //}
+                                //else {
+                                //    anim.SetLayerWeight(5, sneakAnimationWeight);
+                                //    anim.SetLayerWeight(6, 0);
+                                //    anim.SetLayerWeight(7, 0);
+                                //    anim.SetLayerWeight(8, 0);
+                                //}
                                 animHead.SetLayerWeight(2, sneakAnimationWeight);
                             }
                             else {
@@ -490,9 +728,31 @@ public class BodyCam : MonoBehaviour {
                                     sneakAnimationWeight -= Time.deltaTime * 3;
                                 }
                                 anim.SetLayerWeight(2, sneakAnimationWeight);
+                                anim.SetLayerWeight(0, 1 - sneakAnimationWeight);
 
-                                if (isUsing) { anim.SetLayerWeight(6, 1); }
-                                else { anim.SetLayerWeight(5, sneakAnimationWeight); }
+                                //if (isUsing) {
+                                //    anim.SetLayerWeight(5, 0);
+                                //    anim.SetLayerWeight(6, 1);
+                                //    anim.SetLayerWeight(7, 0);
+                                //    anim.SetLayerWeight(8, 0);
+                                //} else if (isHoldingItem && !isReadyingItem) {
+                                //    anim.SetLayerWeight(5, 0);
+                                //    anim.SetLayerWeight(6, 0);
+                                //    anim.SetLayerWeight(7, 1);
+                                //    anim.SetLayerWeight(8, 0);
+                                //}
+                                //else if (isReadyingItem) {
+                                //    anim.SetLayerWeight(5, 0);
+                                //    anim.SetLayerWeight(6, 0);
+                                //    anim.SetLayerWeight(7, 0);
+                                //    anim.SetLayerWeight(8, 1);
+                                //}
+                                //else {
+                                //    anim.SetLayerWeight(5, sneakAnimationWeight);
+                                //    anim.SetLayerWeight(6, 0);
+                                //    anim.SetLayerWeight(7, 0);
+                                //    anim.SetLayerWeight(8, 0);
+                                //}
                                 animHead.SetLayerWeight(2, sneakAnimationWeight);
                             }
 
@@ -528,25 +788,29 @@ public class BodyCam : MonoBehaviour {
 
                                 }
                                 else {
-                                    if (rightEye.rightEyeActive || leftEye.leftEyeActive) {
-                                        rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * 100;                                                                 //      Get vertical look input from mouse (inverted by default)
-                                        rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * 100;                                                                  //      Get horizontal look input from mouse
-                                    }
-                                    else {
-                                        rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * cam.fieldOfView;
-                                        rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * cam.fieldOfView;
-                                    }
+                                    //if (rightEye.rightEyeActive || leftEye.leftEyeActive) {
+                                    //    rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * 100;                                                                 //      Get vertical look input from mouse (inverted by default)
+                                    //    rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * 100;                                                                  //      Get horizontal look input from mouse
+                                    //}
+                                    //else {
+                                    //    rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * camControl.GetActiveCamera().fieldOfView;
+                                    //    rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * camControl.GetActiveCamera().fieldOfView;
+                                    //}
 
+                                    rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * camControl.GetActiveCamera().fieldOfView;
+                                    rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * camControl.GetActiveCamera().fieldOfView;
 
                                     if ((curRotX < vertLookLimHi && curRotX > vertLookLimLo) || (curRotX >= vertLookLimHi && rotX < 0)      //      If vertical look rotation is between limits, or outside limits and moving in...
                                                                                                 || (curRotX <= vertLookLimLo && rotX >= 0)) {
 
-                                        if (bodyCamActive) {                                                                                //          If we're looking through the body camera...
-                                            this.transform.Rotate(rotX * lookSensitivity, 0, 0);                                            //              Rotate the body camera vertically
-                                        }
-                                        else {
-                                            headd.transform.Rotate(rotX * lookSensitivity, 0, 0);
-                                        }
+                                        //if (bodyCamActive) {                                                                                //          If we're looking through the body camera...
+                                        //    this.transform.Rotate(rotX * lookSensitivity, 0, 0);                                            //              Rotate the body camera vertically
+                                        //}
+                                        //else {
+                                        //    headd.transform.Rotate(rotX * lookSensitivity, 0, 0);
+                                        //}
+
+                                        headd.transform.Rotate(rotX * lookSensitivity, 0, 0);
 
                                         curRotX += rotX * lookSensitivity;                                                                  //          Keep track of current rotation value by manually adding current vert rot
 
@@ -572,7 +836,7 @@ public class BodyCam : MonoBehaviour {
                                             ted.transform.TransformDirection(moveX * moveXAdj, 0, moveZ * moveZAdj) * moveSpeed * Time.deltaTime;
                                 rigid.MovePosition(newPosition);
 
-                                if (distTrav > 0.05) {                                                                     //      If distance traveled is greater than threshold and Ted isn't already walking...
+                                if (distTrav > 0.01) {                                                                     //      If distance traveled is greater than threshold and Ted isn't already walking...
                                     if ((Mathf.Abs(moveX) > Mathf.Abs(moveZ))) {
                                         isMovingForward = false;
                                         isMovingBackwards = false;
@@ -594,158 +858,138 @@ public class BodyCam : MonoBehaviour {
                                         }
                                     }
                                 }
-                                else if (distTrav <= 0.02) {                                                                           //      If distance traveled is below the threshold...
+                                else if (distTrav <= 0.01) {                                                                           //      If distance traveled is below the threshold...
                                     SwitchAnimationStateToIdle();
                                 }
                             }
-                        }
-                        break;
-                    case (MovementModes.Driving):
 
-                        //meshRend.enabled = false;
-                        //driverTedMeshRend.enabled = true;
+                            break;
+                        case (MovementModes.Driving):
 
-                        if (isUsing && Time.time - usingFreezeTimerRef > usingFreezeTime) {
+                            anim.SetLayerWeight(0, 0);
+                            anim.SetLayerWeight(1, 0);
+                            anim.SetLayerWeight(2, 0);
+                            anim.SetLayerWeight(3, 0);
+                            anim.SetLayerWeight(4, 0);
+                            anim.SetLayerWeight(5, 0);
+                            anim.SetLayerWeight(6, 0);
+                            anim.SetLayerWeight(7, 0);
+                            anim.SetLayerWeight(8, 0);
 
-                            if (enteringVehicle) {
-                                tedHeadDefaultRotationInVehicle = tedHead.transform.localRotation;
+                            if (Time.time - usingFreezeTimerRef > usingFreezeTime) {
 
-                                currentCarControls.isDriving = true;
-                                currentCarControls.EnableInteriorInteractables();
-                                enteringVehicle = false;
-                                isUsing = false;
+                                if (enteringVehicle) {
+
+                                    Debug.Log("entered");
+
+                                    tedHeadDefaultRotationInVehicle = tedHead.transform.localRotation;
+
+                                    currentCarControls.isDriving = true;
+                                    currentCarControls.EnableInteriorInteractables();
+                                    enteringVehicle = false;
+                                    isUsing = false;
+                                }
+
+                                if (exitingVehicle) {
+
+                                    currentCarControls.isDriving = false;
+                                    currentCarControls.DisableInteriorInteractables();
+                                    currentVehicleID.vehicle.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                                    exitingVehicle = false;
+
+                                    movementScheme = MovementModes.OnFoot;
+                                    isInVehicle = false;
+
+                                    isUsing = true;
+                                }
                             }
 
-                            if (exitingVehicle) {
+                            if (!isUsing && !camControl.gamePaused && bodyControl) {
 
-                                currentCarControls.isDriving = false;
-                                currentCarControls.DisableInteriorInteractables();
-                                currentVehicleID.vehicle.GetComponent<Rigidbody>().velocity = Vector3.zero;
-                                exitingVehicle = false;
+                                anim.SetLayerWeight(9, 1);
+                                anim.SetLayerWeight(10, 1);
 
-                                
-                                //if (actionsAfterUsing.actions.Count > 0) {
-                                //    actionCoord.TriggerParallelActions(actionsAfterUsing);
+                                float rotX = 0;
+                                float rotY = 0;
+
+                                //if (rightEye.rightEyeActive || leftEye.leftEyeActive) {
+                                //    rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * 100;                     // Get vertical look input from mouse (inverted by default)
+                                //    rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * 100;                   // Get horizontal look input from mouse
                                 //}
-                                //actionsAfterUsing.actions.Clear();
+                                //else {
+                                //    rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * camControl.GetActiveCamera().fieldOfView;
+                                //    rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * camControl.GetActiveCamera().fieldOfView;
+                                //}
 
-                                movementScheme = MovementModes.OnFoot;
-                                isInVehicle = false;
+                                rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * camControl.GetActiveCamera().fieldOfView;
+                                rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * camControl.GetActiveCamera().fieldOfView;
 
-                                //usingFreezeTimerRef = Time.time;
-                                //usingFreezeTime = 1;
+                                float steeringHandsPosX = Input.GetAxis("Left Joystick Horizontal");
 
+                                float frameDelta = (steeringHandsPosX - curSteeringHandsPosX);
+                                float newFrame = curSteeringHandsPosX + (frameDelta * steeringHandsChangeFrameFactor);
 
+                                if (leftArmIsPerformingSpecialDrivingTask) {
+                                    if (currentDrivingArmSpecialTaskAnimationNormalizedTime < 1) {
+                                        currentDrivingArmSpecialTaskAnimationNormalizedTime += steeringHandsSpecialTaskChangeFrameFactor * Time.deltaTime;
+                                        Debug.Log(currentDrivingArmSpecialTaskAnimationNormalizedTime);
+                                    }
 
-                                //spinAfterExitingVehicle = true;
-                                //currentCumulativeSpin = cumulativeSpinOffset;
-
-                                //spinTimeRef = Time.time;
-
-                                //anim.SetBool("Spin 180 after exiting car", true);
-                                // ****NOTE: We do not set isUsing to false, since we want isUsing = true to remain into the MovementModes.OnFoot case, so the afterUsingActions, etc. can occur
-                                // N/A ^^^
-                            }
-
-                            //if (spinAfterExitingVehicle) {
-                            //    if (currentCumulativeSpin < 180) {
-                            //        if (currentCumulativeSpin >= 0) {
-                            //            ted.transform.Rotate(new Vector3(0, 3 * exitSpinFactor * Time.deltaTime, 0), Space.Self);
-                            //        }
-                            //        currentCumulativeSpin += 3 * exitSpinFactor * Time.deltaTime;
-                            //    }
-                            //    else {
-                            //        Debug.Log(Time.time - spinTimeRef);
-                            //        anim.SetBool("Spin 180 after exiting car", false);
-                            //        spinAfterExitingVehicle = false;
-                            //        movementScheme = MovementModes.OnFoot;
-                            //        isInVehicle = false;
-                            //        currentCumulativeSpin = 0;
-                            //    }
-                            //}
-                        }
-
-                        if (!isUsing && !camControl.gamePaused && bodyControl) {
-
-                            //anim.SetLayerWeight(7, 1);
-                            anim.SetLayerWeight(8, 1);
-                            anim.SetLayerWeight(9, 1);
-
-                            float rotX = 0;
-                            float rotY = 0;
-
-                            if (rightEye.rightEyeActive || leftEye.leftEyeActive) {
-                                rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * 100;                                                                 //      Get vertical look input from mouse (inverted by default)
-                                rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * 100;                                                                  //      Get horizontal look input from mouse
-                            }
-                            else {
-                                rotX = (Input.GetAxis("Right Joystick Vertical") - Input.GetAxis("Mouse Y")) * cam.fieldOfView;
-                                rotY = (Input.GetAxis("Right Joystick Horizontal") + Input.GetAxis("Mouse X")) * cam.fieldOfView;
-                            }
-
-                            float steeringHandsPosX = Input.GetAxis("Left Joystick Horizontal");
-
-                            float frameDelta = (steeringHandsPosX - curSteeringHandsPosX);
-                            float newFrame = curSteeringHandsPosX + (frameDelta * steeringHandsChangeFrameFactor);
-
-                            if (leftArmIsPerformingSpecialDrivingTask) {
-                                if (currentDrivingArmSpecialTaskAnimationNormalizedTime < 1) {                                    
-                                    currentDrivingArmSpecialTaskAnimationNormalizedTime += steeringHandsSpecialTaskChangeFrameFactor * Time.deltaTime;
-                                    Debug.Log(currentDrivingArmSpecialTaskAnimationNormalizedTime);
-                                }
-
-                                anim.Play(currentLeftArmDrivingAnimationState, 8, currentDrivingArmSpecialTaskAnimationNormalizedTime);
-                            }
-                            else {
-                                anim.Play(currentLeftArmDrivingAnimationState, 8, (newFrame + 1) / 2);      // currentLeftArmDrivingAnimationState SHOULD be "Left Arm Driving.Steering"
-                            }
-
-                            if (rightArmIsPerformingSpecialDrivingTask) {
-                                if (currentDrivingArmSpecialTaskAnimationNormalizedTime < 1) {                                    
-                                    currentDrivingArmSpecialTaskAnimationNormalizedTime += steeringHandsSpecialTaskChangeFrameFactor * Time.deltaTime;
-                                }
-
-                                anim.Play(currentRightArmDrivingAnimationState, 9, currentDrivingArmSpecialTaskAnimationNormalizedTime);
-                            }
-                            else {
-                                anim.Play(currentRightArmDrivingAnimationState, 9, (newFrame + 1) / 2);     // currentRightArmDrivingAnimationState SHOULD be "Right Arm Driving.Steering"
-                            }                            
-
-                            float angle;
-                            if (newFrame >= 0) { angle = newFrame * 300; }
-                            else { angle = (newFrame * 300) + 360; }
-
-                            currentSteeringWheel.localEulerAngles = new Vector3(200, 0, angle);
-
-                            curSteeringHandsPosX = newFrame;
-
-                            if ((curRotX < vertLookLimHi && curRotX > vertLookLimLo) || (curRotX >= vertLookLimHi && rotX < 0)      //      If vertical look rotation is between limits, or outside limits and moving in...
-                                                                                        || (curRotX <= vertLookLimLo && rotX >= 0)) {
-
-                                if (bodyCamActive) {                                                                                //          If we're looking through the body camera...
-                                    this.transform.Rotate(rotX * lookSensitivity, 0, 0);                                            //              Rotate the body camera vertically
+                                    anim.Play(currentLeftArmDrivingAnimationState, 9, currentDrivingArmSpecialTaskAnimationNormalizedTime);
                                 }
                                 else {
+                                    anim.Play(currentLeftArmDrivingAnimationState, 9, (newFrame + 1) / 2);      // currentLeftArmDrivingAnimationState SHOULD be "Left Arm Driving.Steering"
+                                }
+
+                                if (rightArmIsPerformingSpecialDrivingTask) {
+                                    if (currentDrivingArmSpecialTaskAnimationNormalizedTime < 1) {
+                                        currentDrivingArmSpecialTaskAnimationNormalizedTime += steeringHandsSpecialTaskChangeFrameFactor * Time.deltaTime;
+                                    }
+
+                                    anim.Play(currentRightArmDrivingAnimationState, 10, currentDrivingArmSpecialTaskAnimationNormalizedTime);
+                                }
+                                else {
+                                    anim.Play(currentRightArmDrivingAnimationState, 10, (newFrame + 1) / 2);     // currentRightArmDrivingAnimationState SHOULD be "Right Arm Driving.Steering"
+                                }
+
+                                float angle;
+                                if (newFrame >= 0) { angle = newFrame * 300; }
+                                else { angle = (newFrame * 300) + 360; }
+
+                                currentSteeringWheel.localEulerAngles = new Vector3(200, 0, angle);
+
+                                curSteeringHandsPosX = newFrame;
+
+                                if ((curRotX < vertLookLimHi && curRotX > vertLookLimLo) || (curRotX >= vertLookLimHi && rotX < 0)      // If vertical look rotation is between limits, or outside limits and moving in...
+                                                                                            || (curRotX <= vertLookLimLo && rotX >= 0)) {
+
+                                    //if (bodyCamActive) {                                                                                // If we're looking through the body camera...
+                                    //    this.transform.Rotate(rotX * lookSensitivity, 0, 0);                                            // Rotate the body camera vertically
+                                    //}
+                                    //else {
+                                    //    headd.transform.Rotate(rotX * lookSensitivity, 0, 0);
+                                    //}
+
                                     headd.transform.Rotate(rotX * lookSensitivity, 0, 0);
+
+                                    curRotX += rotX * lookSensitivity;                                                                  // Keep track of current rotation value by manually adding current vert rot
+
+                                    if (camControl.leftEyeLodged) {                                                                     // If the left eye is in...
+                                        leftEye.transform.Rotate(rotX * lookSensitivity * vertLookLimiter, 0, 0);                       // Rotate the left eye vertically with the sensitivity factor reduced
+                                    }
+                                    if (camControl.rightEyeLodged) {                                                                    // If the right eye is in...
+                                        rightEye.transform.Rotate(rotX * lookSensitivity * vertLookLimiter, 0, 0);                      // Do same as with left eye^^^
+                                    }
                                 }
 
-                                curRotX += rotX * lookSensitivity;                                                                  //          Keep track of current rotation value by manually adding current vert rot
-
-                                if (camControl.leftEyeLodged) {                                                                     //          If the left eye is in...
-                                    leftEye.transform.Rotate(rotX * lookSensitivity * vertLookLimiter, 0, 0);                                  //              Rotate the left eye vertically with the sensitivity factor reduced
-                                }
-                                if (camControl.rightEyeLodged) {                                                                    //          If the right eye is in...
-                                    rightEye.transform.Rotate(rotX * lookSensitivity * vertLookLimiter, 0, 0);                                 //              Do same as with left eye^^^
-                                }
+                                tedHead.transform.Rotate(0, rotY * lookSensitivity, 0);
                             }
-
-                            tedHead.transform.Rotate(0, rotY * lookSensitivity, 0);
-                        }
-                        break;
-                    case (MovementModes.Flying):
-                        break;
-                    case (MovementModes.Inspecting):
-                        break;
+                            break;
+                        case (MovementModes.Flying):
+                            break;
+                        case (MovementModes.Inspecting):
+                            break;
+                    }
                 }
 
             }
@@ -800,9 +1044,15 @@ public class BodyCam : MonoBehaviour {
         movementScheme = mode;
     }
 
+    public void TriggerAnimation(string triggerString) {
+        if (!isUsing) {
+            anim.SetTrigger(triggerString);
+        }
+    }
+
     // Starts "using" action which triggers an animation
     public void InitiateUseActionWithAnimationTrigger(string triggerName, float actionTime, bool freeze) {
-        //anim.SetLayerWeight(3, 1);          // Sets weight of additive layer "Using" to max
+        //anim.SetLayerWeight(6, 1);          // Sets weight of additive layer "Using" to max
         anim.SetTrigger(triggerName);
         anim.SetBool("Using", true);
         usingFreezeTime = actionTime;
@@ -815,6 +1065,15 @@ public class BodyCam : MonoBehaviour {
         }
     }
 
+    public void SetMovementLayerWeightsToZero() {
+        SwitchAnimationStateToIdle();
+        anim.SetLayerWeight(1, 0);
+        anim.SetLayerWeight(2, 0);
+        anim.SetLayerWeight(3, 0);
+        anim.SetLayerWeight(4, 0);
+        anim.SetLayerWeight(5, 0);
+    }
+
     public void SwitchAnimationStateToIdle() {
         anim.SetBool("ForwardMoving", false);
         animHead.SetBool("ForwardMoving", false);
@@ -825,7 +1084,7 @@ public class BodyCam : MonoBehaviour {
         anim.SetBool("BackwardMoving", false);
         animHead.SetBool("BackwardMoving", false);
         anim.SetBool("Driving", false);
-        anim.SetBool("Using", false);
+        //anim.SetBool("Using", false);
         isMovingForward = false;
         isMovingBackwards = false;
         isRightStepping = false;
@@ -893,7 +1152,21 @@ public class BodyCam : MonoBehaviour {
         return cam.fieldOfView;
     }
 
+    public void SetCurrentHeldItem(IDItem item) {
+        currentHeldItem = item;
+        if (currentHeldItem != null)    {
+            isHoldingItem = true;
+            if (item.holdingPoseTriggerString != null) { TriggerAnimation(item.holdingPoseTriggerString); }
+        }
+        else                            {
+            isHoldingItem = false;
+        }
+    }
+
     public void OperateVehicle(IDVehicle ident) {
+
+        Debug.Log("operating");
+
         movementScheme = MovementModes.Driving;
         currentVehicleID = ident;
         currentSteeringWheel = currentVehicleID.vehicle.GetComponent<CarControls>().steeringWheel;
@@ -934,20 +1207,22 @@ public class BodyCam : MonoBehaviour {
             actionsAfterUsing.actions.Add(ident.driverReorientationAfterExit);
         }
 
-        float longestEntranceActionTime = 0;
+        float longestExitActionTime = 0;
 
         foreach (Action act in ident.exitActions) {
-            if (act.Duration > longestEntranceActionTime) { longestEntranceActionTime = act.Duration; }
+            if (act.Duration > longestExitActionTime) { longestExitActionTime = act.Duration; }
         }
 
         exitingVehicle = true;
-        isUsing = true;
+        //isUsing = true;
 
         //anim.SetLayerWeight(7, 0);
-        anim.SetLayerWeight(8, 0);
         anim.SetLayerWeight(9, 0);
+        anim.SetLayerWeight(10, 0);
 
-        usingFreezeTime = longestEntranceActionTime;
+        Debug.Log("should be good to go!");
+
+        usingFreezeTime = longestExitActionTime;
         usingFreezeTimerRef = Time.time;
     }
 

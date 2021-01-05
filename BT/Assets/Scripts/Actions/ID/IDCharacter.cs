@@ -14,8 +14,12 @@ public class IDCharacter : ID
     public List<Action> enterCarActions, exitCarActions;
     public Transform head, parentBoneOfHead;
 
+    public List<Collider> additionalColliders;
+
     private Vector3 headInitialPos;
     private Quaternion headInitialRot;
+
+    private List<IDVaultObject> currentPotentialVaultObjects = new List<IDVaultObject>();
 
     [Range(0.0f, 100.0f)]
     public float tedsFavorabilityRatingWith, favorabilityNeutralRangeLow, favorabilityNeutralRangeHigh;
@@ -45,5 +49,34 @@ public class IDCharacter : ID
 
     public override void DisplayID() {
         scanner.EnableInfoPanelWithID(this);
+    }
+
+    public override void DisplayID(IDCharacter charID) {
+        
+    }
+
+    public List<IDVaultObject> GetPotentialVaultObjects() {
+        return currentPotentialVaultObjects;
+    }
+
+    // Particularly useful for recognizing VaultObjects
+    private void OnTriggerEnter(Collider other) {
+        if (other.transform.parent != null) {
+            if (other.transform.parent.GetComponent<IDVaultObject>()) {
+                IDVaultObject vObj = other.transform.parent.GetComponent<IDVaultObject>();
+
+                if (!currentPotentialVaultObjects.Contains(vObj)) { currentPotentialVaultObjects.Add(vObj); }
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other) {
+        if (other.transform.parent != null) {
+            if (other.transform.parent.GetComponent<IDVaultObject>()) {
+                IDVaultObject vObj = other.transform.parent.GetComponent<IDVaultObject>();
+
+                if (currentPotentialVaultObjects.Contains(vObj)) { currentPotentialVaultObjects.Remove(vObj); }
+            }
+        }
     }
 }

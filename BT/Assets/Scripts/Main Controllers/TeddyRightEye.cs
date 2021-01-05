@@ -13,7 +13,7 @@ public class TeddyRightEye : MonoBehaviour {
     public bool sixDOF;                                                                                             // Toggle for classic six-degrees-of-freedom controls
     public float maxIDRangeFactor, maxIDRange;                                                                      // From how far away can the eye ID targets? See calc in FixedUpdate
     public RawImage rightEyeScreen, rightEyeScreenPIP, lockIndicator, sixDOFIndicator;
-    public Texture lockIndicatorOn, lockIndicatorOff;
+    public Texture tedTrackIcon, eyeLockedIcon, eyeUnlockedIcon, sixDOFIcon, levelTiltIcon;
 
     private Teddy ted;                                                                                              // Ted reference needed for lock mode
     private TeddyHead tedHead;
@@ -34,7 +34,10 @@ public class TeddyRightEye : MonoBehaviour {
     private Transform previousObject;
     private bool targetInfoCleared;
 
+    private bool rightEyeAbilitiesAvailable;
+
     private ID scanObject, previousTargetedID;
+    private IDCharacter hostID;
     private Ghost targetedGhost;
     private TextAndSpeech targetedSpeech;
     private NPCIntelligence targetedAI;
@@ -68,8 +71,8 @@ public class TeddyRightEye : MonoBehaviour {
         sixDOF = false;                                                                                             // Non-6dof on start
         rightLight.enabled = false;                                                                                 // Eye light off on start
 
-        lockIndicator.enabled = false;
-        sixDOFIndicator.enabled = false;
+        lockIndicator.enabled = true;
+        sixDOFIndicator.enabled = true;
 
         scanStart = 0;
 
@@ -77,6 +80,7 @@ public class TeddyRightEye : MonoBehaviour {
 
         scanObject = null;
         previousTargetedID = null;
+        hostID = ted.transform.GetComponent<IDCharacter>();
         targetedGhost = null;
         targetedSpeech = null;
         targetedAI = null;
@@ -98,18 +102,28 @@ public class TeddyRightEye : MonoBehaviour {
             rigid.constraints &= ~RigidbodyConstraints.FreezePosition;
         }
 
-
-        if (tedTrack) {
-            //this.transform.LookAt(ted.transform.position + new Vector3(0, 55, 0));
-            this.transform.LookAt(tedHead.transform.position);
-            lockIndicator.texture = lockIndicatorOn;
-            sixDOFIndicator.enabled = false;
-        } else {
-            lockIndicator.texture = lockIndicatorOff;
+        if (rightEyeLock) {
+            if (tedTrack) {
+                this.transform.LookAt(tedHead.transform.position);
+                lockIndicator.texture = tedTrackIcon;
+                sixDOFIndicator.texture = levelTiltIcon;
+            }
+            else {
+                lockIndicator.texture = eyeLockedIcon;
+            }
+        }
+        else {
+            lockIndicator.texture = eyeUnlockedIcon;
+            if (sixDOF) {
+                sixDOFIndicator.texture = sixDOFIcon;
+            }
+            else {
+                sixDOFIndicator.texture = levelTiltIcon;
+            }
         }
 
-        if (rightEyeLock)   {lockIndicator.enabled = true;} 
-        else                {lockIndicator.enabled = false;}
+        //if (rightEyeLock)   {lockIndicator.enabled = true;} 
+        //else                {lockIndicator.enabled = false;}
 
         if (camMaster.reticleEnabled || !camMaster.reticleEnabled) {
             
@@ -120,15 +134,17 @@ public class TeddyRightEye : MonoBehaviour {
             //if (camMaster.rightEyeLodged) {
             //    scanFrom = this.transform.TransformPoint(0, 0, 15);
             //}
-            if (bCam.bodyControl && !camMaster.rightEyeLodged) {
-                scanFrom = leftEye.transform;
-            } else {
-                scanFrom = bCam.transform;
-            }
+            //if (bCam.bodyControl && !camMaster.rightEyeLodged) {
+            //    scanFrom = leftEye.transform;
+            //} else {
+            //    scanFrom = bCam.transform;
+            //}
+
+            scanFrom = bCam.transform;
 
             //if (bCam.IsHoldingDocument()) { scanner.HideReticleAndText(true); }
 
-            if (!bCam.IsHoldingDocument() && !bCam.Using() && Physics.Raycast(scanFrom.position, scanFrom.TransformDirection(Vector3.forward), 
+            if (rightEyeAbilitiesAvailable && !bCam.IsHoldingDocument() && !bCam.Using() && Physics.Raycast(scanFrom.position, scanFrom.TransformDirection(Vector3.forward), 
                                                             out hit, maxIDRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) {
 
                 targetInfoCleared = false;
@@ -138,7 +154,7 @@ public class TeddyRightEye : MonoBehaviour {
 
                 if (hit.collider.GetComponent<PointerToID>()) {
                     scanObject = hit.collider.GetComponent<PointerToID>().desiredID;
-                    targetTran = hit.collider.GetComponent<PointerToID>().desiredID.transform.parent;
+                    targetTran = hit.collider.GetComponent<PointerToID>().desiredID.transform;
 
                     if (scanObject.GetType() == typeof(IDInteractable)) {
                         IDInteractable IDThing = (IDInteractable)scanObject;
@@ -160,8 +176,8 @@ public class TeddyRightEye : MonoBehaviour {
                 else {
 
                     targetTran = hit.collider.transform;
-                    if (targetTran.Find("ID") != null) {
-                        scanObject = targetTran.Find("ID").GetComponent<ID>();
+                    if (targetTran.GetComponent<ID>() != null) {
+                        scanObject = targetTran.GetComponent<ID>();
 
                         scanObject.ClearSwitchColliders();
                     }
@@ -171,15 +187,16 @@ public class TeddyRightEye : MonoBehaviour {
 
                 }
 
-                if (targetTran.Find("Ghost") != null)                   { targetedGhost = targetTran.Find("Ghost").GetComponent<Ghost>(); }
+                if (targetTran.GetComponent<Ghost>() != null)           { targetedGhost = targetTran.GetComponent<Ghost>(); }
                 else                                                    { targetedGhost = null; }
-                if (targetTran.Find("TextAndSpeech") != null)           { targetedSpeech = targetTran.Find("TextAndSpeech").GetComponent<TextAndSpeech>(); }
+                if (targetTran.GetComponent<TextAndSpeech>() != null)   { targetedSpeech = targetTran.GetComponent<TextAndSpeech>(); }
                 else                                                    { targetedSpeech = null; }
                 if (targetTran.GetComponent<NPCIntelligence>() != null) { targetedAI = targetTran.GetComponent<NPCIntelligence>(); }
                 else                                                    { targetedAI = null; }
                 if (targetTran.GetComponent<AudioSource>() != null)     { targetedAudio = targetTran.GetComponent<AudioSource>(); }
                 else                                                    { targetedAudio = null; }
 
+                // Activating comms with a Waterman rapidly increases its alert level
                 if (hit.collider.transform.GetComponent<CyclopsAI>() != null && commsControl.textActive && hit.collider.transform.GetComponent<CyclopsAI>().alertLevel < 100) {
                     hit.collider.transform.GetComponent<CyclopsAI>().alertLevel += Time.deltaTime * hit.collider.transform.GetComponent<CyclopsAI>().alertMultiplier;
                 }
@@ -211,11 +228,19 @@ public class TeddyRightEye : MonoBehaviour {
                         bCam.TriggerVehicleInteriorAnimation("");
                     }
 
+                    // Display info panel for ID holder (based on ID type)
+                    // Vaultable objects need the scanning entity passed into the DisplayID method--the vault command is only displayed when in range to vault
+                    if (scanObject.GetType() == typeof(IDVaultObject) && camMaster.rightEyeLodged && bCam.bodyControl) {
+                        IDVaultObject vaultID = (IDVaultObject)scanObject;
+
+                        vaultID.DisplayID(hostID);
+                    }
+                    else {
+                        scanObject.DisplayID();
+                    }
+
                     previousObject = targetTran;
                     previousTargetedID = scanObject;
-
-                    // Display info panel for ID holder (based on ID type)
-                    scanObject.DisplayID();
 
                     //if (Input.GetButton("Square Button") && !camMaster.gamePaused) {
                     //    if (!scanObject.KnowDescription) {
@@ -331,7 +356,7 @@ public class TeddyRightEye : MonoBehaviour {
                     this.transform.Rotate(rotX * rightEyeLookSens,
                                           rotY * rightEyeLookSens,
                                           rotZ * tiltSpeed);                                                        //              Rotation, * sens and tilt factors
-                    sixDOFIndicator.enabled = true;
+                    //sixDOFIndicator.enabled = true;
 
                 } else {                                                                                            //          If not in 6dof mode...
                     this.transform.Rotate(rotX * rightEyeLookSens, 0, 0);                                           //              Rotation, vertical, why separate??              !!!
@@ -340,7 +365,7 @@ public class TeddyRightEye : MonoBehaviour {
                     this.transform.localEulerAngles = new Vector3(this.transform.localEulerAngles.x,
                                                                   this.transform.localEulerAngles.y,
                                                                   0);                                           //          If not in 6dof mode, zero loc z-rot
-                    sixDOFIndicator.enabled = false;
+                    //sixDOFIndicator.enabled = false;
                 }
             } //else {
                 //if (tedTrack) { 
@@ -348,6 +373,10 @@ public class TeddyRightEye : MonoBehaviour {
                 //}
             //}                                                                                                       //      If view is locked...
         }
+    }
+
+    public void RightEyeAbilitiesAreGo(bool yesOrNo) {
+        rightEyeAbilitiesAvailable = yesOrNo;
     }
 
     public ID RightEyeTargetID() {

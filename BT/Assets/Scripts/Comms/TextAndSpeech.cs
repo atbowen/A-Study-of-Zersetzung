@@ -31,7 +31,7 @@ public class TextAndSpeech : MonoBehaviour
 
     void Start() {
         musicBox = FindObjectOfType<MusicPlayer>();
-        speechAudio = this.GetComponent<AudioSource>();
+        speechAudio = this.transform.GetComponent<AudioSource>();
 
         if (face != null) { faceAnim = face.GetComponent<Animator>(); }
 

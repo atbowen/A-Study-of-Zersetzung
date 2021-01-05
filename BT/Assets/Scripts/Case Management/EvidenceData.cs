@@ -10,8 +10,12 @@ public abstract class EvidenceData : ScriptableObject
     public virtual string SampleName { get => sampleName; set => sampleName = value; }
     public virtual string Notes { get => notes; set => notes = value; }
 
-    protected ProjectHandler projHandler;
+    protected bool retrieved = false;
+    public virtual bool Retrieved { get => retrieved; set => retrieved = value; }
 
-    public abstract void SetProjectHandlerMode();
-    public abstract void UpdateResultsAndNotes();
+    public abstract void DetermineMatches();
+    public abstract string GetResults();
+    public abstract string GetResults(int referenceIndexToShow);
+    public abstract string GetNotes();
+    public abstract string GetNotes(int referenceIndexToShow);
 }

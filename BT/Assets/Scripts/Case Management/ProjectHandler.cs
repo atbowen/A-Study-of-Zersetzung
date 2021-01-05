@@ -6,8 +6,12 @@ using UnityEngine.UI;
 // Manages all of the case projects
 public class ProjectHandler : MonoBehaviour {
     public List<ProjectFile> openProjects, closedProjects, submittedProjects;
-    public ProjectFile currentWorkingProject;
+    public ProjectFile currentWorkingProject, unassignedData;
     public CrimeScene currentWorkingCrimeScene;
+
+    public List<NMRRefResults> NMRRefs;
+    public List<TrajectoryRefSet> trajRefSets;
+    public List<ImageRefCapture> refImagesOfInterest;
 
     // Data result types
     public enum DataType { SceneView, TrajView, NMRView, ThermalView, MatView }
@@ -50,51 +54,71 @@ public class ProjectHandler : MonoBehaviour {
     private float openProjectListHighlightFlashRefTime;
 
     void Start() {
-        currentWorkingProjectIndex = 0;
-        currentWorkingProject = openProjects[0];
-        openProjectListHighlightInitialPosition = openProjectListHighlight.rectTransform.position;
-        openProjectListHighlightPosition = openProjectListHighlightInitialPosition;
 
-        projectSelected = false;
+        // Make unnassignedData the first project in the openProjects ProjectFile list
+        List<ProjectFile> tempProjList = new List<ProjectFile>();
+        if (openProjects.Count > 0) {
 
-        activeDataType = DataType.SceneView;
-        showingCrimeSceneOnStage = false;
+            foreach (ProjectFile proj in openProjects) {
+                tempProjList.Add(proj);
+            }
+
+            openProjects.Clear();
+
+            openProjects.Add(unassignedData);
+
+            foreach (ProjectFile proj in tempProjList) {
+                openProjects.Add(proj);
+            }
+        }
+        else {
+            openProjects.Add(unassignedData);
+        }
+
+        //currentWorkingProjectIndex = 0;
+        //currentWorkingProject = openProjects[currentWorkingProjectIndex];
+        //openProjectListHighlightInitialPosition = openProjectListHighlight.rectTransform.position;
+        //openProjectListHighlightPosition = openProjectListHighlightInitialPosition;
+
+        //projectSelected = false;
+
+        //activeDataType = DataType.SceneView;
+        //showingCrimeSceneOnStage = false;
     }
 
     void Update() {
-        if (!projectSelected) {
-            ManageOpenProjectListHighlightFading();
-        }
+        //if (!projectSelected) {
+        //    ManageOpenProjectListHighlightFading();
+        //}
 
-        EvidenceData curEvidence = currentWorkingProject.currentEvidence;
+        //EvidenceData curEvidence = currentWorkingProject.currentEvidence;
 
-        if (curEvidence != null) {
-            curEvidence.SetProjectHandlerMode();
-            curEvidence.UpdateResultsAndNotes();
-        } else {
-            if (currentWorkingProject.piecesOfEvidence.Count > 0)   { curEvidence = currentWorkingProject.piecesOfEvidence[0]; }
-            else                                                    { activeDataWindow.texture = noDataTexture; }
-        }
+        //if (curEvidence != null) {
+        //    curEvidence.GetResults();
+        //} else {
+        //    if (currentWorkingProject.piecesOfEvidence.Count > 0)   { curEvidence = currentWorkingProject.piecesOfEvidence[0]; }
+        //    else                                                    { activeDataWindow.texture = noDataTexture; }
+        //}
 
-        switch (activeDataType) {
-            case DataType.SceneView:
-                activeDataWindow.texture = crimeSceneStageView;
-                foreach (CrimeScene sc in currentWorkingProject.crimeScenes) {
-                    AssignEvidenceToScene(sc);
-                    SetCenterStageObjectAndMaxViewDistance(sc);
-                    PositionAllSceneStageObjects(sc);
-                    ShowCrimeSceneStageElements(sc);
-                }
-                break;
-            case DataType.TrajView:
-                break;
-            case DataType.NMRView:
-                break;
-            case DataType.ThermalView:
-                break;
-            case DataType.MatView:
-                break;
-        }
+        //switch (activeDataType) {
+        //    case DataType.SceneView:
+        //        activeDataWindow.texture = crimeSceneStageView;
+        //        foreach (CrimeScene sc in currentWorkingProject.crimeScenes) {
+        //            AssignEvidenceToScene(sc);
+        //            SetCenterStageObjectAndMaxViewDistance(sc);
+        //            PositionAllSceneStageObjects(sc);
+        //            ShowCrimeSceneStageElements(sc);
+        //        }
+        //        break;
+        //    case DataType.TrajView:
+        //        break;
+        //    case DataType.NMRView:
+        //        break;
+        //    case DataType.ThermalView:
+        //        break;
+        //    case DataType.MatView:
+        //        break;
+        //}
     }
 
     public bool IsProjectSelected() {
@@ -199,7 +223,7 @@ public class ProjectHandler : MonoBehaviour {
     }
 
     public void ImportCrimeSceneElementIntoPool(Transform element, CrimeSceneObject.ObjClass objectClass, string crimeSceneName) {
-        if (element.Find("ID").GetComponent<ID>() != null) {
+        if (element.GetComponent<ID>() != null) {
             CrimeSceneObject newObject = new CrimeSceneObject(element, objectClass);
 
             evidencePool.Add(newObject);

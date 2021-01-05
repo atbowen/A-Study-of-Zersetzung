@@ -3,21 +3,61 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-[CreateAssetMenu(menuName = "Evidence/Trajectory Set")]
-public class TrajectorySet : EvidenceData
+// TrajectorySets are unlike EvidenceData in that they aren't simply found--the player has to choose actual points in space
+// While they are "evidence", it makes no sense to make them ScriptableObjects
+[System.Serializable]
+public class TrajectorySet
 {
-    public string setLabel;
+    public string setLabel, notes;
+    // Trajectory sets will be limited to one or two trajectories
     public List<Trajectory> trajectories;
-    public Texture trajSetImage;
 
-    public override void SetProjectHandlerMode() {
-        projHandler = FindObjectOfType<ProjectHandler>();
-        projHandler.activeDataType = ProjectHandler.DataType.TrajView;
+    public int defaultNumOfRefsToShow;
+
+    public List<TrajectoryRefSet> matches;
+
+    public void DetermineMatches() {
+        ProjectHandler projHandler = GameObject.FindObjectOfType<ProjectHandler>();
+
+        matches.Clear();
+
+        if (projHandler.trajRefSets.Count > 0) {
+
+            List<TrajectoryRefSet> acceptableMatches = new List<TrajectoryRefSet>();
+
+            foreach (TrajectoryRefSet trajRef in projHandler.trajRefSets) {
+                if (this.ReturnMatchAccuracyWithReferenceSet(trajRef) > trajRef.accuracyRequirement) {
+                    acceptableMatches.Add(trajRef);
+                }
+            }
+
+            int numOfTopPicksFound = 0;
+            float tempMatchRating = 0;
+            TrajectoryRefSet tempTopRef = null;
+
+            while ((numOfTopPicksFound < defaultNumOfRefsToShow) && (acceptableMatches.Count > 0)) {
+                foreach (TrajectoryRefSet trajRef in acceptableMatches) {
+
+                    float rating = ReturnMatchRatingWithReferenceSet(trajRef);
+
+                    if (rating > tempMatchRating) {
+                        tempMatchRating = rating;
+                        tempTopRef = trajRef;
+                    }
+                }
+
+                if (tempTopRef && !matches.Contains(tempTopRef)) { matches.Add(tempTopRef); }
+
+                acceptableMatches.Remove(tempTopRef);
+                tempTopRef = null;
+                numOfTopPicksFound++;
+            }
+        }
     }
 
-    public override void UpdateResultsAndNotes() {
-        ProjectFile currentProject = projHandler.currentWorkingProject;
-        CrimeScene currentScene = projHandler.currentWorkingCrimeScene;
+    public string GetResults() {
+        ProjectHandler projHandler = GameObject.FindObjectOfType<ProjectHandler>();
+
         string results;
 
         // Generate trajectory info
@@ -39,50 +79,97 @@ public class TrajectorySet : EvidenceData
         // Generate match rating and info text, and notes
         string trajMatchRatingTxt = "Match  Rating:  ";
         string trajMatchInfoTxt = "\nMatches:  ";
-        string trajNotesTxt = "";
 
-        foreach (RawImage img in projHandler.trajSetOverlays) { img.enabled = true; }
+        //foreach (RawImage img in projHandler.trajSetOverlays) { img.enabled = true; }
 
-        projHandler.activeDataWindow.texture = projHandler.crimeSceneStageView;
-        
-        foreach (Trajectory traj in this.trajectories) {
-            Vector3 dispFromCenter = traj.transform.position - currentScene.centerObject.obj.position;
-            traj.transform.position = currentScene.centerObject.objCopy.position + dispFromCenter;
-            //traj.transform.GetComponent<MeshRenderer>().enabled = traj.IsVisibleOnActivation();
-            traj.transform.GetComponent<MeshRenderer>().enabled = true;
-        }
-        foreach (TrajectoryRefSet trajRef in currentProject.trajRefSet) {
-            if (this.ReturnMatchAccuracyWithReferenceSet(trajRef) > trajRef.accuracyRequirement) {
+        //projHandler.activeDataWindow.texture = projHandler.crimeSceneStageView;
+
+        //foreach (Trajectory traj in this.trajectories) {
+        //    Vector3 dispFromCenter = traj.transform.position - currentScene.centerObject.obj.position;
+        //    traj.transform.position = currentScene.centerObject.objCopy.position + dispFromCenter;
+        //    traj.transform.GetComponent<MeshRenderer>().enabled = traj.IsVisibleOnActivation();
+        //    traj.transform.GetComponent<MeshRenderer>().enabled = true;
+        //}
+        if (matches.Count > 0) {
+            foreach (TrajectoryRefSet trajRef in matches) {
+
                 // Add match info to results text
-                trajMatchRatingTxt = trajMatchRatingTxt + "(" + trajRef.setLabel + ")-" +
-                                    this.ReturnMatchRatingWithReferenceSet(trajRef) + ";  ";
-                trajMatchInfoTxt = trajMatchInfoTxt + trajRef.comments + ";  ";
-                if (trajRef.notes != "") { trajNotesTxt = trajNotesTxt + trajRef.notes + "\n"; }
-
-                bool refSetAlreadyInOverlayList = false;
-                foreach (RawImage img in projHandler.trajSetOverlays) {
-                    if (img.texture.name == trajRef.trajRefOverlay.name) { refSetAlreadyInOverlayList = true; }
-                }
-
-                bool refSetAdded = false;
-                if (!refSetAlreadyInOverlayList) {
-                    foreach (RawImage img in projHandler.trajSetOverlays) {
-                        if (img.texture.name == "blank texture" && !refSetAdded) {
-                            img.texture = trajRef.trajRefOverlay;
-                            refSetAdded = true;
-                        }
-                    }
-                }
-            }
-            else {
-                foreach (RawImage img in projHandler.trajSetOverlays) {
-                    if (img.texture.name == trajRef.trajRefOverlay.name) { img.texture = projHandler.blankTexture; }
-                }
+                trajMatchRatingTxt = trajMatchRatingTxt + "(" + trajRef.setLabel + ")-" + this.ReturnMatchRatingWithReferenceSet(trajRef) + ";  ";
+                trajMatchInfoTxt = trajMatchInfoTxt + ".  " + trajRef.comments;
             }
         }
 
-        projHandler.resultsTxt.text = results + "\n\n" + trajMatchRatingTxt + "\n" + trajMatchInfoTxt;
-        projHandler.notesTxt.text = trajNotesTxt + "\n" + this.notes;
+        return results + "\n\n" + trajMatchRatingTxt + "\n" + trajMatchInfoTxt;
+    }
+
+    public string GetResults(int referenceIndexToShow) {
+
+        ProjectHandler projHandler = GameObject.FindObjectOfType<ProjectHandler>();
+
+        string results;
+
+        // Generate trajectory info
+        results = "Traj  pts:  " + trajectories.Count + "\n";
+
+        switch (trajectories.Count) {
+            case 0:
+                results = results + "()---<  EMPTY";
+                break;
+            default:
+                results = results + "(";
+                for (int i = 0; i < trajectories.Count; i++) {
+                    results = results + trajectories[i].labelStart + "-->" + trajectories[i].labelEnd + ",  ";
+                }
+                results = results + ")";
+                break;
+        }
+
+        // Generate match rating and info text, and notes
+        string trajMatchRatingTxt = "Match  Rating:  ";
+        string trajMatchInfoTxt = "\nMatches:  ";
+
+        //foreach (RawImage img in projHandler.trajSetOverlays) { img.enabled = true; }
+
+        //projHandler.activeDataWindow.texture = projHandler.crimeSceneStageView;
+
+        //foreach (Trajectory traj in this.trajectories) {
+        //    Vector3 dispFromCenter = traj.transform.position - currentScene.centerObject.obj.position;
+        //    traj.transform.position = currentScene.centerObject.objCopy.position + dispFromCenter;
+        //    traj.transform.GetComponent<MeshRenderer>().enabled = traj.IsVisibleOnActivation();
+        //    traj.transform.GetComponent<MeshRenderer>().enabled = true;
+        //}
+        if (referenceIndexToShow < matches.Count) {
+
+            // Add match info to results text
+            trajMatchRatingTxt = trajMatchRatingTxt + "(" + matches[referenceIndexToShow].setLabel + ")-" + this.ReturnMatchRatingWithReferenceSet(matches[referenceIndexToShow]) + ";  ";
+            trajMatchInfoTxt = trajMatchInfoTxt + ".  " + matches[referenceIndexToShow].comments;
+        }
+
+        return results + "\n\n" + trajMatchRatingTxt + "\n" + trajMatchInfoTxt;
+    }
+
+    public string GetNotes() {
+
+        string trajNotesTxt = notes;
+
+        if (matches.Count > 0) {
+            foreach (TrajectoryRefSet trajRef in matches) {
+                if (trajRef.notes != "") { trajNotesTxt = trajNotesTxt + trajRef.notes + "\n"; }
+            }
+        }
+
+        return trajNotesTxt;
+    }
+
+    public string GetNotes(int referenceIndexToShow) {
+
+        string trajNotesTxt = notes;
+
+        if (referenceIndexToShow < matches.Count) {
+            if (matches[referenceIndexToShow].notes != "") { trajNotesTxt = trajNotesTxt + matches[referenceIndexToShow].notes + "\n"; }
+        }
+
+        return trajNotesTxt;
     }
 
     public float ReturnMatchRatingWithReferenceSet(TrajectoryRefSet otherSet) {

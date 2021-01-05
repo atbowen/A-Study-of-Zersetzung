@@ -601,6 +601,9 @@ public class CommsController : MonoBehaviour {
             SetFakeTedAsCurrentID();
             textActivated = true;
         }
+        else if (panels.IsCurrentSpecialFunctionStrikeCall()) {
+            FindObjectOfType<StrikePlaneCaller>().CallStrike();
+        }
 
         panels.SelectSpecialFunction();
     }
@@ -618,7 +621,7 @@ public class CommsController : MonoBehaviour {
     }
 
     public void SetFakeTedAsCurrentID() {
-        startingPrompt = FindObjectOfType<FakeTedAI>().transform.Find("TextAndSpeech").GetComponent<TextAndSpeech>().openingTextLine;
+        startingPrompt = FindObjectOfType<FakeTedAI>().transform.GetComponent<TextAndSpeech>().openingTextLine;
         portrait.texture = FindObjectOfType<FakeTedAI>().fakeTedPortrait;
         portraitFrame.enabled = true;
         portrait.enabled = true;

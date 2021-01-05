@@ -12,8 +12,8 @@ public class LeaveVehicle : Action {
     public override void DoAction() {
         Transform actor = GameObject.Find(actorName).transform;
 
-        if (actor.Find("ID").GetComponent<IDVehicle>()) {
-            IDVehicle ident = actor.Find("ID").GetComponent<IDVehicle>();
+        if (actor.GetComponent<IDVehicle>()) {
+            IDVehicle ident = actor.GetComponent<IDVehicle>();
             CarControls carControl = ident.carController;
 
             if (ident.vehicle.GetComponent<Rigidbody>().velocity.magnitude < carControl.maxVelocityMagnitudeToExit) {
@@ -36,6 +36,7 @@ public class LeaveVehicle : Action {
                     else { FindObjectOfType<TeddyHead>().transform.localRotation = Quaternion.identity; }
                 }
 
+                // For now this only works with Ted
                 FindObjectOfType<BodyCam>().LeaveVehicle(ident);
 
                 carControl.DisableInteriorInteractables();

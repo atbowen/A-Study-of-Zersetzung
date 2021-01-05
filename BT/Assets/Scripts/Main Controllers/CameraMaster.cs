@@ -9,21 +9,37 @@ public class CameraMaster : MonoBehaviour {
     public bool gamePaused;
     public RawImage pauseScreen;
 
+    // Important references
+    [SerializeField]
+    private Camera bodyCamera, headCam, rightEyeCam;
+    public Transform head, headVision;
+
     // Head, HUD, and camera stuff
-    public RenderTexture staticView, loadingView, leftEyeRT, rightEyeRT, headdActualRT, headdRefRT, blackAndWhiteRT;
-    public RawImage mainOverlay, topRightInsert, bothEyesScreen, hallucinationScreen;                                        // mainOverlay image is for full screen projections; insert is for picture-in-a-picture
-    public Texture[] hallucinationFrames;
+    public RenderTexture staticView, loadingView, leftEyeRT, rightEyeRT, headCamRT;
+    public RawImage mainOverlay, topRightInsert, insertFrame, insertReticle, insertFlasher, hallucinationScreen;   // mainOverlay image is main cam; insert is picture-in-a-picture
+    public Text FOVText;
     public RawImage hallucinatingTextBgd;
     public List<RawImage> gardenOverlays;
     public List<Camera> gardenOverlayCameras;
     public RawImage vawnTripOverlay;
     public Camera vawnTripCamera;
 
+    public float zoomFactor, scrollWheelSensitivity;
+    public Color FOVMainColor, FOVPIPColor;
+    public RawImage PIPFOVConnector;
+    public List<Texture> PIPFOVConnectorFrames, PIPFOVDisconnectorFrames;
+    private bool connectingPIPToFOV, disconnectingPIPFromFOV;
+    [SerializeField]
+    private float PIPFOVConnectorFrameChangeTime;
+    private int PIPFOVConnectorFrameIndex;
+    private float PIPFOVConnectorFrameChangeTimeRef;
+
     // RawImages, etc. whose alphas need to be adjusted for the Garden overlays
     [SerializeField]
     public List<ImageAndAlpha> imagesWithDependentAlpha;
-    public float alphaScalarForGardenOverlays;
+    public float alphaScalarForGardenOverlays;    
 
+    // Hallucination and vawn trip parameters
     public Text hallucinatingText;
     public float hallucinationFrameTime, hallucinationScreenAlphaDecrement;
     public float gardenOverlayFOVShiftMinTime, gardenOverlayFOVShiftMaxTime, gardenOverlayFOVShiftMin, gardenOverlayFOVShiftMax, gardenaCamFOVProximityThreshold, gardenCamFOVShiftRate;
@@ -31,17 +47,17 @@ public class CameraMaster : MonoBehaviour {
                 vawnTripFOVStretchRandMin, vawnTripFOVStretchRandMax, vawnTripFOVStretchTimeRandMin, vawnTripFOVStretchTimeRandMax, vawnTripFOVStretchRate,
                 vawnTripSecondPulseTime, vawnTripThirdPulseTime;
     public AudioClip heartbeatSound;
-    public Camera bodyCamera;
-    public Transform headActual, headNoBob;
-    public Transform headObjectHavingMesh;
+    [SerializeField, Range(0.0f, 100.0f)]
+    private float vawnTripStandardDosageAmount, vawnPoisonReductionPerHeartBeat;
+    
+    // Viewing modes--probably not needed
     public enum ViewMode { Std, XRay, OffAir, Loading };                                              // Std = normal screen, XRay = wireframe, OffAir = static, Adjusting = loading screen
+
+    // Important states
     public bool leftEyeLodged, rightEyeLodged;                                                          // Checks for eyes in place
     public bool rightEyeAbilitiesAvailable, reticleEnabled;
-
     public bool jammed, hallucinating, showGardenOverlays;
-
     public bool toolSelectorOpen;
-
     public bool atTedsRoom;
 
     // Comms
@@ -67,6 +83,7 @@ public class CameraMaster : MonoBehaviour {
     public AudioClip rightEyeLightSwitchOn, rightEyeLightSwitchOff;
 
     // Look at all of this crap vvv  This game is going to be great. :) Love this comment.  It's 10.4.2020, game's been in dev for 5 years and still loving it.  We're gonna finish this!
+    // Now it's 12.12.2020!  We're going to get the mechanics done by end of year, demo by end of January 2021.  IT'S GOING TO HAPPEN.
     private BodyCam view;
     private Teddy ted;
     private TeddyHead tedHead;
@@ -85,36 +102,50 @@ public class CameraMaster : MonoBehaviour {
     private RawImage reticleImg;
     private RawImage commsImg;
     private StatusPopup statusWindow;
+    private SapPoisonLevel sapMonitor;
+
+    private Camera activeCam;
 
     private AudioSource rightEyeAudio;
 
     private enum ViewStates { Other, BodyRightEyeIn, BodyRightEyeOut, RightEye, RightEyeDislodging, RightEyeLodging }
     private ViewStates CamState;
+    
+    // Initial positions and rotations
+    private Vector3 initialPosBCam, initialPosLeft, initialPosRight;
+    private Quaternion returnRotLeft, returnRotRight, initialRotBCam, initialRotHeadVision;
 
-    private float startStatic, staticTime, clearStatic, clearTime;                                      
-    private Vector3 initialPosBody, initialPosLeft, initialPosRight;                                    
-    private Quaternion returnRotLeft, returnRotRight, initialRotBody;                                   
-
+    // Frequency jammed! (not used)
     private int currentJamFrameIndex;
     private float jamFrameTimeIndex;
 
+    // Picture in picture flashing light parameters
+    [Range(0.0f, 1.0f), SerializeField]
+    private float insertFlasherMinAlpha, insertFlasherMaxAlpha;
+    [SerializeField]
+    private float insertFlasherIntensityChangeFactor;
+    private bool insertFlasherAlphaIsIncreasing;
+
+    // Reticle enabling/disabling
+    private float reticlePressTime;
+    private bool reticleReleased, reticleHidden;
+
+    // Eye lodging/dislodging graphics
+    private bool showingEyeGridlines;
+    private float eyeGridlinesStartTimeRef;
+    private int currentEyeGridlineFrame;
+
+    // Garden overlay stretching and framing
+    private float gardenOverlayFOVShiftRefTime, gardenOverlayFOVShiftRandomTime;
     private int currentHallucinationFrameIndex;
     private float hallucinationFrameTimeIndex;
     private string stringOfAlphas, hallucinatingNonRandomText;
     private bool hallucinatingUnscrambledText;
 
-    private float reticlePressTime;
-    private bool reticleReleased, reticleHidden;
-
-    private bool showingEyeGridlines;
-    private float eyeGridlinesStartTimeRef;
-    private int currentEyeGridlineFrame;
-
-    private float gardenOverlayFOVShiftRefTime, gardenOverlayFOVShiftRandomTime;
-
+    // Vawn trip overlay
     private float vawnTripRandRot, vawnTripRotRefTime, vawnTripRotRandTime,
                 vawnTripRandFOVStretch, vawnTripFOVStretchRefTime, vawnTripFOVStretchRandTime, vawnTripCurrentTargetFOV;
-    private bool vawnTripIsRotNeg, vawnTripIsRotPos, vawnTripIsStretchNeg, vawnTripIsStretchPos, vawnTripNegRotFirst, vawnTripNegFOVStretchFirst;
+    private bool vawnTripIsStretchNeg, vawnTripIsStretchPos, vawnTripNegRotFirst, vawnTripNegFOVStretchFirst;
     private float[] vawnTripPulseTimes = new float[3];
     private int currentvawnTripPulseNumber;
 
@@ -138,8 +169,8 @@ public class CameraMaster : MonoBehaviour {
         rightEyeAudio = rightEye.GetComponent<AudioSource>();
 
         // Do I need these???
-        headdRT = headdActualRT;
-        headd = headActual;
+        headdRT = headCamRT;
+        headd = headVision;
 
         // HUD stuff
         wkDesk = FindObjectOfType<WorkDesk>();
@@ -148,9 +179,13 @@ public class CameraMaster : MonoBehaviour {
         commsControl = FindObjectOfType<CommsController>();
         toolSelect = FindObjectOfType<ToolSelector>();
         statusWindow = FindObjectOfType<StatusPopup>();
+        sapMonitor = FindObjectOfType<SapPoisonLevel>();
 
         // Music player
-        musicBox = FindObjectOfType<MusicPlayer>();        
+        musicBox = FindObjectOfType<MusicPlayer>();
+
+        // The active camera is the one whose field of view can be increased/decreased
+        activeCam = bodyCamera;
 
         // Game not paused at start
         gamePaused = false;
@@ -170,6 +205,8 @@ public class CameraMaster : MonoBehaviour {
         leftEyeLodged = true;                                                                           
         rightEyeLodged = true;
 
+        insertFlasherAlphaIsIncreasing = false;
+
         // Jamming overlay (not jammed by default)
         jammed = false;                                                                                 
         currentJamFrameIndex = 0;                                                                       
@@ -180,12 +217,14 @@ public class CameraMaster : MonoBehaviour {
         gardenOverlayFOVShiftRefTime = Time.time;
         gardenOverlayFOVShiftRandomTime = Random.Range(gardenOverlayFOVShiftMinTime, gardenOverlayFOVShiftMaxTime);
 
-        if (imagesWithDependentAlpha.Count > 0) {
-            foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
-                img.IntializeOriginalAlpha();
-                Debug.Log(img.image.color.a + ", " + img.GetOriginalAlpha());
-            }
-        }
+        // This was intended to adjust the transparency of HUD elements when the Garden overlays are enabled/disabled
+        // Original alphas of all of the elements are stored in the imagesWithDependentAlpha list, to be reset to when the overlays are disabled
+        //if (imagesWithDependentAlpha.Count > 0) {
+        //    foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
+        //        img.IntializeOriginalAlpha();
+        //        Debug.Log(img.image.color.a + ", " + img.GetOriginalAlpha());
+        //    }
+        //}
 
         // Hallucination settings and text (not hallucinating by default)
         hallucinating = false;
@@ -200,6 +239,12 @@ public class CameraMaster : MonoBehaviour {
         currentHallucinationFrameIndex = 0;                                                             
         hallucinationFrameTimeIndex = 0;                                                                
         stringOfAlphas = "abcdefghijklmnopqrstuvwxyz~~~~~~////\\\\\\---------......";
+
+        // HUD element effects
+        connectingPIPToFOV = false;
+        disconnectingPIPFromFOV = false;
+        PIPFOVConnector.enabled = false;
+        PIPFOVConnectorFrameIndex = 0;
         
         // Comms (off at start)
         commsEnabled = false;
@@ -224,26 +269,41 @@ public class CameraMaster : MonoBehaviour {
         //keyTimer = 0.1f;
         keyTimerRef = 0;
 
+        // Disable the comms special menu at start
         commsSpecialOptionsMenuOpened = false;
 
         // Establish reference positions and rotations
-        initialPosBody = view.transform.localPosition;
+        initialPosBCam = view.transform.localPosition;
         initialPosLeft = leftEye.transform.localPosition;
         initialPosRight = rightEye.transform.localPosition;
-        initialRotBody = view.transform.localRotation;
+        initialRotBCam = view.transform.localRotation;
         returnRotLeft = leftEye.transform.localRotation;
         returnRotRight = rightEye.transform.localRotation;
 
+        initialRotHeadVision = headVision.localRotation;
+
         // Set up body camera
-        SwitchCam(view.transform, headd, initialPosBody, initialRotBody);
+        SwitchCam(view.transform, headd, initialPosBCam, initialRotBCam);
         // Necessary???
-        initialRotBody = view.transform.localRotation;
+        initialRotBCam = view.transform.localRotation;
         // Set state
         CamState = ViewStates.BodyRightEyeIn;
+
+        // For now, let's make right eye abilities always available
+        rightEye.RightEyeAbilitiesAreGo(true);
     }
 
     // Update is called once per frame
     void FixedUpdate() {
+
+        // Picture in picture graphical effects
+        PictureInPictureActivationCheck();
+
+        // Sets active camera and displays the current camera's FOV
+        FOVSyncer();
+
+
+        
 
         // Every current possible state:
         // Controlling body with/without right eye, right eye lodging/dislodging, controlling right eye (and "other" state)
@@ -252,6 +312,14 @@ public class CameraMaster : MonoBehaviour {
                 case ViewStates.Other:
                     break;
                 case ViewStates.BodyRightEyeIn:
+
+                    //rightEye.RightEyeAbilitiesAreGo(true);
+
+                    // No picture-in-picture, bodyCam is the operating camera, and Ted's body is being controlled
+                    topRightInsert.enabled = false;
+                    view.bodyCamActive = true;
+                    view.bodyControl = true;
+
                     if (showingEyeGridlines) {
                         if (Time.time - eyeGridlinesStartTimeRef > eyeGridlinesFrameSpeed) {
                             if (currentEyeGridlineFrame < numberOfShutterFramesBeforeGridlines - 2) {
@@ -268,13 +336,20 @@ public class CameraMaster : MonoBehaviour {
                     }
 
                     if (!view.Using()) {
-                        if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer) && !commsEnabled) {
+                        if (Input.GetButtonDown("X Button") && (Time.time - view.usingFreezeTimerRef > view.usingFreezeTime) && !commsEnabled) {
+
                             view.InitiateUseActionWithAnimationTrigger("Take out eye", 1, false);
                             CamState = ViewStates.RightEyeDislodging;
+
+                            headCam.fieldOfView = bodyCamera.fieldOfView;
                         }
                     }
                     break;
                 case ViewStates.BodyRightEyeOut:
+
+                    //if (rightEye.rightEyeActive)    { rightEye.RightEyeAbilitiesAreGo(true); }
+                    //else                            { rightEye.RightEyeAbilitiesAreGo(false); }
+
                     if (showingEyeGridlines) {
                         if (Time.time - eyeGridlinesStartTimeRef > eyeGridlinesFrameSpeed) {
                             if (currentEyeGridlineFrame < eyeDislodgeGridlineFrames.Count - 1) {
@@ -290,31 +365,41 @@ public class CameraMaster : MonoBehaviour {
                             }
                             else {
                                 showingEyeGridlines = false;
-                                rightEyeGridlinesBgd.enabled = false;
+                                //rightEyeGridlinesBgd.enabled = false;
                             }
                         }
                     }
 
                     if (!view.Using()) {
-                        if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer)
+                        if (Input.GetButtonDown("X Button") && (Time.time - view.usingFreezeTimerRef > view.usingFreezeTime)
                                 && (headd.transform.position - rightEye.transform.position).magnitude < 20 && !commsEnabled) {
                             showingEyeGridlines = false;
                             rightEyeGridlinesBgd.enabled = false;
 
                             view.InitiateUseActionWithAnimationTrigger("Take out eye", 1, false);
                             CamState = ViewStates.RightEyeLodging;
+
+                            if (PIPFOVConnector.enabled) {
+                                disconnectingPIPFromFOV = true;
+                                PIPFOVConnectorFrameIndex = 0;
+                                PIPFOVConnectorFrameChangeTimeRef = Time.time;
+                            }
+
+                            bodyCamera.fieldOfView = headCam.fieldOfView;
                         }
                     }
                     break;
                 case ViewStates.RightEye:
                     break;
                 case ViewStates.RightEyeDislodging:
+                    // Pop the eye out a little earlier than when the "take out eye" animation ends
                     if (view.GetUseFreezeTimeRemaining() < 0.6f) {
                         DislodgeRightEye();
                         CamState = ViewStates.BodyRightEyeOut;
                     }
                     break;
                 case ViewStates.RightEyeLodging:
+                    // Pop the eye in a little earlier than when the "take out eye" (but actually lodging) animation ends
                     if (view.GetUseFreezeTimeRemaining() < 0.8f) {
                         LodgeRightEye();
                         CamState = ViewStates.BodyRightEyeIn;
@@ -330,7 +415,11 @@ public class CameraMaster : MonoBehaviour {
         if (Input.GetButtonDown("Start") && (Time.time - keyTimerRef > keyTimer)) {                             // Toggle pause menu (SPRING)
             gamePaused = !gamePaused;
             keyTimerRef = Time.time;                                                                            //
-            if (gamePaused) { wkDesk.CallDeskOpenSound(); }
+            if (gamePaused) {
+                wkDesk.CallDeskOpenSound();
+                // If pulling up the pause/Work Desk screen system and it goes straight to the Desk-Status screen, restart the status text effects
+                FindObjectOfType<DeskScreen>().InitializeStatusTexts();
+            }
             else            { wkDesk.CallDeskCloseSound(); }
 
         }                                                                                                       //
@@ -340,6 +429,8 @@ public class CameraMaster : MonoBehaviour {
 
         // When game isn't paused
         if (!gamePaused) {
+
+
 
             // Toggle comms
             if ((Input.GetButtonDown("Square Button")) && Time.time - keyTimerRef > keyTimer && !triggerPressed) {
@@ -401,34 +492,35 @@ public class CameraMaster : MonoBehaviour {
             // When comms aren't up
             if (!commsEnabled) {
 
-                if ((rightEye.rightEyeActive || (rightEyeLodged && view.bodyControl)) && Input.GetButtonDown("Triangle Button") &&
-                            (Time.time - reticlePressTime > 0.5)) {                                                                          //      Light toggle (C)
-                    if (rightEye.rightLight.enabled)    { rightEyeAudio.PlayOneShot(rightEyeLightSwitchOn); }
-                    else                                { rightEyeAudio.PlayOneShot(rightEyeLightSwitchOff); }
-                    rightEye.rightLight.enabled = !rightEye.rightLight.enabled;
-                    reticlePressTime = Time.time;
-                }
+                //if ((rightEye.rightEyeActive || (rightEyeLodged && view.bodyControl)) && Input.GetButtonDown("Triangle Button") &&
+                //            (Time.time - reticlePressTime > 0.5)) {                                                                          //      Light toggle (C)
+                //    if (rightEye.rightLight.enabled)    { rightEyeAudio.PlayOneShot(rightEyeLightSwitchOn); }
+                //    else                                { rightEyeAudio.PlayOneShot(rightEyeLightSwitchOff); }
+                //    rightEye.rightLight.enabled = !rightEye.rightLight.enabled;
+                //    reticlePressTime = Time.time;
+                //}
 
+                // Opening the Tool Selector
                 if (view.bodyControl && view.bodyCamActive && !view.InVehicle() && ((Input.GetButton("Left Bumper")) || Input.GetKey(KeyCode.Mouse1))) {
                     toolSelectorOpen = true;
                     toolSelect.toolSelectorOpen = true;
-
-                    //statusWindow.FlashStatusText("Tool  Selector  open.");
                 } else {
                     toolSelectorOpen = false;
                     toolSelect.toolSelectorOpen = false;
                 }
                 
+                // If controlling the body and looking from the body's POV, right bumper takes a dose of vawn sap
                 if (view.bodyControl && view.bodyCamActive && Input.GetButtonDown("Right Bumper") && Time.time - keyTimerRef > keyTimer) {
-                    hallucinating = !hallucinating;
-                    keyTimerRef = Time.time;
+                    //hallucinating = !hallucinating;
 
-                    InitializeVawnTripRotVariables();
+                    sapMonitor.TakeHit(vawnTripStandardDosageAmount);
+
+                    keyTimerRef = Time.time;
                     InitializeVawnTripStretchVariables();
                 }
 
                 
-
+                // Vawn tripping
                 if (((Time.time - reticlePressTime > 0.5) && ((Input.GetAxis("D-Pad Left Right") > 0)) ||       // Toggle hallucinations on and off
                         ((Time.time - reticlePressTime > 0.1) && Input.GetButtonDown("Hallucinations")))) {     //                                                     
 
@@ -442,30 +534,54 @@ public class CameraMaster : MonoBehaviour {
                 // Check if right eye abilities are available
                 CheckIfRightEyePowersAreAvailable();
 
+                // Toggle reticle
                 if (!reticleHidden && !view.IsHoldingDocument() && ((Time.time - reticlePressTime > 0.5) && ((Input.GetAxis("D-Pad Left Right") < 0)) ||       // Toggle reticle on and off (if right eye powers are available)
                     ((Time.time - reticlePressTime > 0.1) && Input.GetButtonDown("Reticle")))) {                //
                     ToggleReticle();                                                                            //
                     reticlePressTime = Time.time;                                                               //
                 }                                                                                               //
 
+                if (Input.GetAxis("D-Pad Up Down") < 0) {
+                    if (activeCam.fieldOfView < 100) {
+                        activeCam.fieldOfView += zoomFactor;
+                    }
+                }
+                else if (Input.GetAxis("D-Pad Up Down") > 0) {
+                    if (activeCam.fieldOfView > 5) {
+                        activeCam.fieldOfView -= zoomFactor;
+                    }
+                }
+
+                if (Input.GetAxis("Mouse ScrollWheel") < 0) {
+                    if (activeCam.fieldOfView < 100) {
+                        activeCam.fieldOfView += scrollWheelSensitivity;
+                    }
+                }
+                else if (Input.GetAxis("Mouse ScrollWheel") > 0) {
+                    if (activeCam.fieldOfView > 5) {
+                        activeCam.fieldOfView -= scrollWheelSensitivity;
+                    }
+                }
+
+                FOVText.text = (105 - (int)activeCam.fieldOfView).ToString();
+
+
+                // EYE LOGIC ////////////////////////////
+
+
                 // If both eyes are in
                 if (leftEyeLodged && rightEyeLodged) {
-                    topRightInsert.enabled = false;                                                             // No picture in picture                          
-                    bothEyesScreen.enabled = true;                                                              // Screen overlay for both eyes in is enabled
+                    //topRightInsert.enabled = false;                                                             // No picture in picture
 
-                    view.bodyCamActive = true;                                                                  // Main camera is displaying from Ted's perspective
-                    view.bodyControl = true;                                                                    // Player can move Ted
+                    //view.bodyCamActive = true;                                                                  // Main camera is displaying from Ted's perspective
+                    //view.bodyControl = true;                                                                    // Player can move Ted
 
-                    // Dislodge right eye
-                    //if (Input.GetButtonDown("X Button") && (Time.time - keyTimerRef > keyTimer)) {
-                    //    view.InitiateUseActionWithAnimationTrigger("Take out eye", 1);
-                    //}   
                 // If the eyes are not both lodged
                 } else {
                     // If the player is controlling the right eye
-                    if (rightEye.rightEyeActive) {
-                        bothEyesScreen.enabled = false;                                                         // Both eyes screen overlay effect is disabled
+                    if (rightEye.rightEyeActive)  {
                         view.bodyCamActive = false;                                                             // Main camera not displaying Ted's perspective
+                        rightEyeGridlinesBgd.enabled = true;
 
                         // Toggle Ted tracking or 6DOF
                         if (Input.GetButtonDown("Left Bumper") && (Time.time - keyTimerRef > keyTimer)) {       
@@ -483,8 +599,8 @@ public class CameraMaster : MonoBehaviour {
                         if (Input.GetButtonDown("Circle Button") && (Time.time - keyTimerRef > keyTimer)) {
 
 
-                            SwitchCam(view.transform, headd, initialPosBody,
-                                leftEye.transform.rotation * Quaternion.AngleAxis(0, Vector3.up));                 // Make main camera child of left eye (current rotation)
+                            SwitchCam(view.transform, headd, initialPosBCam,
+                                initialRotBCam);                 // Make main camera child of left eye (current rotation)
 
                             //if (leftEyeLodged) {                                                              // ****** Applicable if left eye functionality is implemented
                             //    view.bodyControl = true;                                                      //
@@ -495,28 +611,36 @@ public class CameraMaster : MonoBehaviour {
                             //}                                                                                 //
 
                             topRightInsert.texture = rightEyeRT;                                                // Picture in picture is now right eye's perspective
+                            rightEyeCam.fieldOfView = bodyCamera.fieldOfView;
+                            bodyCamera.fieldOfView = headCam.fieldOfView;
+
                             rightEye.rightEyeActive = false;                                                    // Right eye not in control
                             view.bodyCamActive = true;                                                          // Make main camera display Ted's perspective
                             view.bodyControl = true;                                                            // Player controls Ted
 
+                            view.SwitchAnimationStateToIdle();
                             keyTimerRef = Time.time;
                         }
                     // If right eye is out but not active, and left eye is in place
                     } else if (!rightEye.rightEyeActive && leftEyeLodged) {
-                        
+
+                        rightEyeGridlinesBgd.enabled = false;
 
                         if (Input.GetButtonDown("Circle Button") && (Time.time - keyTimerRef > keyTimer)) {
                             if (rightEye.rightEyeLock) {
-                                view.SwitchAnimationStateToIdle();
+                                
                                 view.bodyControl = true;
                             } else {
                                 view.bodyControl = false;
+                                view.SwitchAnimationStateToIdle();
                             }
                             rightEye.rightEyeActive = true;
                             
-                            topRightInsert.texture = leftEyeRT;                                                     // Picture in picture shows left eye perspective
-                            view.GetComponent<Camera>().nearClipPlane = 0.3f;                                       // Clipping in 
-                            bothEyesScreen.enabled = false;                                                         // Both eyes screen overlay effect disabled
+                            topRightInsert.texture = headCamRT;                                                 // Picture in picture shows left eye perspective
+                            headCam.fieldOfView = bodyCamera.fieldOfView;
+                            bodyCamera.fieldOfView = rightEyeCam.fieldOfView;
+
+                            view.GetComponent<Camera>().nearClipPlane = 0.3f;                                       // Clipping in
 
                             SwitchCam(view.transform, rightEye.transform,
                                         Vector3.zero, Quaternion.identity);
@@ -531,26 +655,26 @@ public class CameraMaster : MonoBehaviour {
 
                         if (rightEyeLodged) {
 
-                            rightEyeLodged = false;
-                            rightEye.transform.parent = null;
-                            rightEye.transform.Translate(0, 0, 5f, Space.Self);
+                            //rightEyeLodged = false;
+                            //rightEye.transform.parent = null;
+                            //rightEye.transform.Translate(0, 0, 5f, Space.Self);
 
-                            SwitchCam(view.transform, rightEye.transform,
-                                      Vector3.zero, Quaternion.identity);                   // Make body camera child of right eye                     
+                            //SwitchCam(view.transform, rightEye.transform,
+                            //          Vector3.zero, Quaternion.identity);                   // Make body camera child of right eye                     
 
-                            rightEye.transform.localRotation = returnRotRight;
-                            leftEye.transform.localRotation = returnRotLeft;
-                            view.transform.localRotation = initialRotBody;
-                            view.curRotX = 0;
+                            //rightEye.transform.localRotation = returnRotRight;
+                            //leftEye.transform.localRotation = returnRotLeft;
+                            //view.transform.localRotation = initialRotBody;
+                            //view.curRotX = 0;
 
-                            RightEyeCollisions(true);
-                            view.bodyCamActive = false;                                     // Disable body camera between-eyes view
-                            view.bodyControl = false;                                       // Disable body controls
+                            //RightEyeCollisions(true);
+                            //view.bodyCamActive = false;                                     // Disable body camera between-eyes view
+                            //view.bodyControl = false;                                       // Disable body controls
 
-                            rightEye.rightEyeActive = true;                                 // Enable right eye controls
-                            rightEye.rightEyeLock = false;
+                            //rightEye.rightEyeActive = true;                                 // Enable right eye controls
+                            //rightEye.rightEyeLock = false;
 
-                            topRightInsert.texture = headdRT;
+                            //topRightInsert.texture = headdRT;
 
                         } else if (!rightEyeLodged) {
 
@@ -674,12 +798,10 @@ public class CameraMaster : MonoBehaviour {
             animHead.speed = 0;                                             //
             pauseScreen.enabled = true;                                     // Enable pause screen
             wkDesk.deskEnabled = true;                                      // Open SPRING
-            wkDesk.openDesk = true;                                         //
         } else {
             rigid.constraints &= ~RigidbodyConstraints.FreezePosition;      // Disable position constraints
             pauseScreen.enabled = false;                                    // Disable pause screen
             wkDesk.deskEnabled = false;                                     // Close SPRING
-            wkDesk.closeDesk = true;                                        //
         }
     }
 
@@ -688,7 +810,7 @@ public class CameraMaster : MonoBehaviour {
         view.SwitchAnimationStateToIdle();                                                      // Revert to Ted's idle animation
 
         topRightInsert.enabled = true;                                                          // Enable picture in picture, Ted's perspective
-        topRightInsert.texture = headdRT;                                                       //
+        topRightInsert.texture = headCamRT;                                                       //
 
         view.bodyCamActive = false;                                                             // Main camera is not displaying from Ted's perspective
         view.bodyControl = false;                                                               // Player cannot move Ted
@@ -726,19 +848,22 @@ public class CameraMaster : MonoBehaviour {
         rightEyeLodged = true;
 
         if (leftEyeLodged) {
-            SwitchCam(view.transform, headd, initialPosBody, initialRotBody);
+            SwitchCam(view.transform, headd, initialPosBCam, initialRotBCam);
             view.bodyCamActive = true;
         }
 
         view.bodyControl = true;
         rightEye.rightEyeActive = false;
 
+        rightEye.tedTrack = false;
+
         rightEye.transform.parent = null;
-        rightEye.transform.parent = headd.transform;
+        rightEye.transform.parent = head.transform;
         rightEye.transform.localPosition = initialPosRight;
         rightEye.transform.localRotation = returnRotRight;
 
         view.curRotX = 0;
+        headVision.localRotation = initialRotHeadVision;
 
         if (leftEyeLodged) {
             leftEye.transform.localRotation = returnRotLeft;
@@ -761,20 +886,29 @@ public class CameraMaster : MonoBehaviour {
     // Switch perspective by making main camera a child of target object; initialize orientation
     public void SwitchCam(Transform cam, Transform target, Vector3 finalPos, Quaternion finalRot) {
         //cam.parent.SetParent(null, false);                                                                              // De-parent
-        cam.SetParent(target, false);                                                                            // Make child of target
+        cam.SetParent(target);                                                                            // Make child of target
 
         cam.localPosition = finalPos;                                                                   // Initialize position
         cam.localRotation = finalRot;                                                                   // Initialize rotation
     }
 
     // Toggle between controlling right eye, and locking it in place and controlling Ted
+    // It is assumed that rightEye.rightEyeActive = true, but the statement is repeated for clarity
     private void ToggleRightEyeTPP() {
+
+        rightEye.rightEyeActive = true;
+
         if (rightEye.rightEyeLock) {
             if (!reticleHidden) {
                 reticleEnabled = true;
                 reticleImg.enabled = true;
             }
             view.bodyControl = false;
+
+            // Initiate animation of HUD disconnection of PIP window from the FOV display
+            disconnectingPIPFromFOV = true;
+            PIPFOVConnectorFrameIndex = 0;
+            PIPFOVConnectorFrameChangeTimeRef = Time.time;
 
             view.SwitchAnimationStateToIdle();
         } else if (!rightEye.rightEyeLock) {
@@ -783,6 +917,11 @@ public class CameraMaster : MonoBehaviour {
                 reticleImg.enabled = false;
             }
             view.bodyControl = true;
+
+            // Initiate animation of HUD connection between PIP window and the FOV display
+            connectingPIPToFOV = true;
+            PIPFOVConnectorFrameIndex = 0;
+            PIPFOVConnectorFrameChangeTimeRef = Time.time;
         }
 
         rightEye.rightEyeLock = !rightEye.rightEyeLock;
@@ -814,7 +953,7 @@ public class CameraMaster : MonoBehaviour {
                                 randShift = randShift * -1;
                             }
 
-                            cam.fieldOfView = bodyCamera.fieldOfView + randShift;
+                            cam.fieldOfView = activeCam.fieldOfView + randShift;
                             gardenOverlayFOVShiftRandomTime = Random.Range(gardenOverlayFOVShiftMinTime, gardenOverlayFOVShiftMaxTime);
                             gardenOverlayFOVShiftRefTime = Time.time;
                         }
@@ -830,11 +969,11 @@ public class CameraMaster : MonoBehaviour {
                     img.enabled = false;
                 }
 
-                if (imagesWithDependentAlpha.Count > 0) {
-                    foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
-                        img.SetAlphaToOriginal();
-                    }
-                }
+                //if (imagesWithDependentAlpha.Count > 0) {
+                //    foreach (ImageAndAlpha img in imagesWithDependentAlpha) {
+                //        img.SetAlphaToOriginal();
+                //    }
+                //}
             }
 
             foreach (Camera cam in gardenOverlayCameras) {
@@ -846,7 +985,7 @@ public class CameraMaster : MonoBehaviour {
             }
         }
 
-        if (view.bodyControl && view.bodyCamActive && hallucinating) {
+        if (sapMonitor.IsSapToxicityLevelHighEnoughToInduceHallucination()) {              // if (view.bodyControl && view.bodyCamActive && hallucinating) {
             mainOverlay.enabled = false;
             vawnTripOverlay.enabled = true;
 
@@ -890,8 +1029,6 @@ public class CameraMaster : MonoBehaviour {
                     }
                     else {
 
-                        Debug.Log(currentvawnTripPulseNumber + ", " + vawnTripFOVStretchRandTime);
-
                         switch (currentvawnTripPulseNumber) {
                             case 0:
                                 vawnTripRandFOVStretch = Random.Range(vawnTripFOVStretchRandMin, vawnTripFOVStretchRandMax);
@@ -910,6 +1047,9 @@ public class CameraMaster : MonoBehaviour {
                                 break;
                         }
 
+                        // After each heartbeat, reduce the poison level
+                        sapMonitor.Detox(vawnPoisonReductionPerHeartBeat);
+
                         vawnTripIsStretchNeg = false;
                         vawnTripFOVStretchRefTime = Time.time;
                     }
@@ -921,64 +1061,12 @@ public class CameraMaster : MonoBehaviour {
             vawnTripOverlay.enabled = false;
         }
 
-        hallucinationScreen.enabled = false;                                                                                //
+        hallucinationScreen.enabled = false;
         hallucinatingText.enabled = false;
         hallucinatingTextBgd.enabled = false;
-
-        //if (hallucinating) {                                                                                                    //
-        //    hallucinationScreen.enabled = true;                                                                                 //
-        //    hallucinatingText.enabled = true;
-        //    hallucinatingTextBgd.enabled = true;
-
-        //    hallucinationScreen.texture = hallucinationFrames[currentHallucinationFrameIndex];                                  //
-        //                                                                                                                        //
-        //    if ((Time.time - hallucinationFrameTimeIndex) > hallucinationFrameTime) {                                           //
-        //        currentHallucinationFrameIndex = (currentHallucinationFrameIndex + 1) % hallucinationFrames.Length;             //
-        //        hallucinationFrameTimeIndex = Time.time;                                                                        //
-        //        Color imageColor = hallucinationScreen.color;
-        //        imageColor.a = hallucinationScreen.color.a - (hallucinationScreenAlphaDecrement * hallucinationScreen.color.a);
-        //        if (imageColor.a > 0.2) {
-        //            hallucinationScreen.color = imageColor;
-        //        }
-        //        if (hallucinatingUnscrambledText) { hallucinatingText.text = hallucinatingNonRandomText; } 
-        //        else { hallucinatingText.text = GenerateHallucinationText(); }
-        //    }                                                                                                                   //
-        //                                                                                                                        //
-        //} else {                                                                                                                //
-        //    hallucinationScreen.enabled = false;                                                                                //
-        //    hallucinatingText.enabled = false;
-        //    hallucinatingTextBgd.enabled = false;
-
-        //    Color newColor = hallucinationScreen.color;
-        //    newColor.a = 1;
-        //    hallucinationScreen.color = newColor;
-        //}                                                                                                                       //
-    }
-
-    private void InitializeVawnTripRotVariables() {
-        if (Random.Range(0, 2) == 0) {
-            vawnTripNegRotFirst = true;
-            vawnTripIsRotNeg = true;
-        }
-        else {
-            vawnTripNegRotFirst = false;
-            vawnTripIsRotNeg = false;
-        }
-
-        vawnTripRandRot = Random.Range(vawnTripRotRandMin, vawnTripRotRandMax);
-        vawnTripRotRandTime = Random.Range(vawnTripRotTimeRandMin, vawnTripRotTimeRandMax);
-        vawnTripRotRefTime = Time.time;
     }
 
     private void InitializeVawnTripStretchVariables() {
-        //if (Random.Range(0, 2) == 0) {
-        //    vawnTripNegFOVStretchFirst = true;
-        //    vawnTripIsStretchNeg = true;
-        //}
-        //else {
-        //    vawnTripNegFOVStretchFirst = false;
-        //    vawnTripIsStretchNeg = false;
-        //}
 
         vawnTripIsStretchNeg = false;
         
@@ -1027,6 +1115,10 @@ public class CameraMaster : MonoBehaviour {
         keyTimerRef = Time.time;
     }
 
+    public Camera GetActiveCamera() {
+        return activeCam;
+    }
+
     private void CheckIfRightEyePowersAreAvailable() {
         if (rightEye.rightEyeActive || (rightEyeLodged && view.bodyCamActive)) {
             rightEyeAbilitiesAvailable = true;
@@ -1057,6 +1149,89 @@ public class CameraMaster : MonoBehaviour {
         else                        { rightEye.sixDOF = !rightEye.sixDOF; }
     }
 
+
+    // HUD GRAPHICAL EFFECTS
+
+    // Activate/deactivate picture-in-picture HUD elements
+    private void PictureInPictureActivationCheck() {
+        if (topRightInsert.enabled) {
+            insertFrame.enabled = true;
+            insertFlasher.enabled = true;
+            insertReticle.enabled = true;
+
+            if (insertFlasherAlphaIsIncreasing) {
+                if (insertFlasher.color.a < insertFlasherMaxAlpha) {
+                    Color newColor = new Color(insertFlasher.color.r, insertFlasher.color.g, insertFlasher.color.b, insertFlasher.color.a + Time.deltaTime * insertFlasherIntensityChangeFactor);
+                    insertFlasher.color = newColor;
+                }
+                else {
+                    insertFlasherAlphaIsIncreasing = false;
+                }
+            }
+            else {
+                if (insertFlasher.color.a > insertFlasherMinAlpha) {
+                    Color newColor = new Color(insertFlasher.color.r, insertFlasher.color.g, insertFlasher.color.b, insertFlasher.color.a - Time.deltaTime * insertFlasherIntensityChangeFactor);
+                    insertFlasher.color = newColor;
+                }
+                else {
+                    insertFlasherAlphaIsIncreasing = true;
+                }
+            }
+        }
+        else {
+            insertFrame.enabled = false;
+            insertFlasher.enabled = false;
+            insertReticle.enabled = false;
+        }
+    }
+
+    // Determine active camera and display current FOV
+    private void FOVSyncer() {
+        if (rightEye.rightEyeActive && view.bodyControl) {
+            activeCam = headCam;
+            FOVText.color = FOVPIPColor;
+            PIPFOVConnector.enabled = true;
+        }
+        else {
+            activeCam = bodyCamera;
+            FOVText.color = FOVMainColor;
+        }
+
+        if (connectingPIPToFOV) {
+
+            PIPFOVConnector.texture = PIPFOVConnectorFrames[PIPFOVConnectorFrameIndex];
+
+            if (Time.time - PIPFOVConnectorFrameChangeTimeRef > PIPFOVConnectorFrameChangeTime) {
+                if (PIPFOVConnectorFrameIndex < PIPFOVConnectorFrames.Count - 1) {
+                    PIPFOVConnectorFrameIndex++;
+                    PIPFOVConnectorFrameChangeTimeRef = Time.time;
+                }
+                else {
+                    connectingPIPToFOV = false;
+                }
+            }
+        }
+
+        if (disconnectingPIPFromFOV) {
+
+            PIPFOVConnector.texture = PIPFOVDisconnectorFrames[PIPFOVConnectorFrameIndex];
+
+            if (Time.time - PIPFOVConnectorFrameChangeTimeRef > PIPFOVConnectorFrameChangeTime) {
+                if (PIPFOVConnectorFrameIndex < PIPFOVDisconnectorFrames.Count - 1) {
+                    PIPFOVConnectorFrameIndex++;
+                    PIPFOVConnectorFrameChangeTimeRef = Time.time;
+                }
+                else {
+                    disconnectingPIPFromFOV = false;
+                    PIPFOVConnector.enabled = false;
+                }
+            }
+
+        }
+    }
+
+
+    // Class for list of HUD elements that need alpha adjustments when switching the Garden overlays on/off
     [System.Serializable]
     public class ImageAndAlpha {
         public RawImage image;

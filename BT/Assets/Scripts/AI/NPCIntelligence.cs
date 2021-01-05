@@ -73,7 +73,7 @@ public class NPCIntelligence : MonoBehaviour
     {
         // Initialize components
         faceAnim = face.GetComponent<Animator>();
-        speechController = this.transform.Find("TextAndSpeech").GetComponent<TextAndSpeech>();
+        speechController = this.transform.GetComponent<TextAndSpeech>();
         tedHead = FindObjectOfType<TeddyHead>();
         inv = this.transform.Find("Inventory").GetComponent<Inventory>();
         actCoord = FindObjectOfType<ActionSceneCoordinator>();
@@ -104,9 +104,9 @@ public class NPCIntelligence : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (conversationStarted && currentFriend != null && currentFriend.transform.Find("TextAndSpeech").GetComponent<TextAndSpeech>() != null) {
+        if (conversationStarted && currentFriend != null && currentFriend.transform.GetComponent<TextAndSpeech>() != null) {
             if (!currentFriend.conversationStarted) {
-                currentFriendSpeechControl = currentFriend.transform.Find("TextAndSpeech").GetComponent<TextAndSpeech>();
+                currentFriendSpeechControl = currentFriend.transform.GetComponent<TextAndSpeech>();
 
                 CommsNPCInitiate();
             }

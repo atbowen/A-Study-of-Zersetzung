@@ -1,0 +1,262 @@
+fileFormatVersion: 2
+guid: 2ecd97fdc191f024186e88fc7176acd6
+ModelImporter:
+  serializedVersion: 23
+  fileIDToRecycleName:
+    100000: body_mid
+    100002: body_upper
+    100004: Eagle_scout
+    100006: Eagle_scout_armature
+    100008: head
+    100010: neck
+    100012: pelvis
+    100014: //RootNode
+    100016: tendril_10_l
+    100018: tendril_10_r
+    100020: tendril_11_l
+    100022: tendril_11_r
+    100024: tendril_12_l
+    100026: tendril_12_r
+    100028: tendril_13_l
+    100030: tendril_13_r
+    100032: tendril_14_l
+    100034: tendril_14_r
+    100036: tendril_15_l
+    100038: tendril_15_r
+    100040: tendril_1_l
+    100042: tendril_1_r
+    100044: tendril_2_l
+    100046: tendril_2_r
+    100048: tendril_3_l
+    100050: tendril_3_r
+    100052: tendril_4_l
+    100054: tendril_4_r
+    100056: tendril_5_l
+    100058: tendril_5_r
+    100060: tendril_6_l
+    100062: tendril_6_r
+    100064: tendril_7_l
+    100066: tendril_7_r
+    100068: tendril_8_l
+    100070: tendril_8_r
+    100072: tendril_9_l
+    100074: tendril_9_r
+    100076: tendril_IK_l
+    100078: tendril_IK_r
+    400000: body_mid
+    400002: body_upper
+    400004: Eagle_scout
+    400006: Eagle_scout_armature
+    400008: head
+    400010: neck
+    400012: pelvis
+    400014: //RootNode
+    400016: tendril_10_l
+    400018: tendril_10_r
+    400020: tendril_11_l
+    400022: tendril_11_r
+    400024: tendril_12_l
+    400026: tendril_12_r
+    400028: tendril_13_l
+    400030: tendril_13_r
+    400032: tendril_14_l
+    400034: tendril_14_r
+    400036: tendril_15_l
+    400038: tendril_15_r
+    400040: tendril_1_l
+    400042: tendril_1_r
+    400044: tendril_2_l
+    400046: tendril_2_r
+    400048: tendril_3_l
+    400050: tendril_3_r
+    400052: tendril_4_l
+    400054: tendril_4_r
+    400056: tendril_5_l
+    400058: tendril_5_r
+    400060: tendril_6_l
+    400062: tendril_6_r
+    400064: tendril_7_l
+    400066: tendril_7_r
+    400068: tendril_8_l
+    400070: tendril_8_r
+    400072: tendril_9_l
+    400074: tendril_9_r
+    400076: tendril_IK_l
+    400078: tendril_IK_r
+    2100000: None__Eagle_scout_strike_plane_done_png
+    4300000: Eagle_scout
+    7400000: Default Take
+    7400002: forward_motion
+    7400004: idle
+    9500000: //RootNode
+    13700000: Eagle_scout
+  externalObjects: {}
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Default Take
+      takeName: Default Take
+      firstFrame: 1
+      lastFrame: 61
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: forward_motion
+      takeName: forward_motion
+      firstFrame: 1
+      lastFrame: 61
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 1
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: idle
+      takeName: idle
+      firstFrame: 1
+      lastFrame: 49
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 1
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 10
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    preserveHierarchy: 0
+    indexFormat: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    previousCalculatedGlobalScale: 1
+    hasPreviousCalculatedGlobalScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 1
+    tangentImportMode: 3
+    normalCalculationMode: 0
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

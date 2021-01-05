@@ -16,9 +16,9 @@ public class AnimatedVoiceLine : Action
 
             Transform actorPerson = GameObject.Find(actorName).transform;
 
-            if (actorPerson.Find("TextAndSpeech") != null) {
-                if (actorPerson.Find("TextAndSpeech").GetComponent<TextAndSpeech>() != null) {
-                    actorPerson.Find("TextAndSpeech").GetComponent<TextAndSpeech>().PlayClipAndStartAnimatingFace(animatedLine);
+            if (actorPerson.GetComponent<TextAndSpeech>() != null) {
+                if (actorPerson.GetComponent<TextAndSpeech>() != null) {
+                    actorPerson.GetComponent<TextAndSpeech>().PlayClipAndStartAnimatingFace(animatedLine);
                 }
             }
 

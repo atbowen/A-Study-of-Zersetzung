@@ -13,7 +13,19 @@ public class Crown : MonoBehaviour
     public float crownCountIncreaseSpeed, delayBeforeCrownTotalCalculation;
     public float crownIconFlashingTimeOnPickup, crownTextFlashingTimeOnPickup, delayBeforeIconFlash, delayBeforeTextFlash;
     public float crownIconFlashSpeed, crownTextFlashSpeed;
+    public bool makeTextBulge;
     public float crownIconBulgeFactor, crownTextBulgeFactor;
+
+    private bool gotMoney, waitingForCounterFadeAway, fadeCounter;
+
+    public List<Texture> crownCounterAnimationFrames;
+    [SerializeField]
+    private float crownCounterAnimationFrameChangeTime, delayBeforeCounterFades, counterFadeFactor;
+    [SerializeField]
+    private float crownCounterLowAlphaThreshold = 0.01f;
+    private float crownCounterAnimationFrameRefTime, fadeDelayRefTime;
+    private int crownCounterAnimationFrameIndex;
+    private float increaseAmountFactor;
 
     private MusicPlayer musicBox;
     private float totalCrownDisplayed, actualTotalCrown;
@@ -63,6 +75,13 @@ public class Crown : MonoBehaviour
 
         actualTotalCrown = startingTotalCrown;
         totalCrownDisplayed = startingTotalCrown;
+
+        gotMoney = false;
+        crownCounterAnimationFrameIndex = 0;
+        waitingForCounterFadeAway = false;
+        fadeCounter = false;
+        crownIcon.color = new Color(crownIcon.color.r, crownIcon.color.g, crownIcon.color.b, 0);
+        crownText.color = new Color(crownText.color.r, crownText.color.g, crownText.color.b, 0);
     }
 
     // Update is called once per frame
@@ -72,36 +91,86 @@ public class Crown : MonoBehaviour
         if (totalIncreasing) {
             if (Time.time - delayCrownTotalCalculationRef > delayBeforeCrownTotalCalculation) {
                 if (actualTotalCrown > totalCrownDisplayed) {
-                    if ((actualTotalCrown - totalCrownDisplayed) > crownCountIncreaseSpeed * Time.deltaTime) {
-                        totalCrownDisplayed += crownCountIncreaseSpeed * Time.deltaTime;
+                    if ((actualTotalCrown - totalCrownDisplayed) > increaseAmountFactor * Time.deltaTime) {
+                        totalCrownDisplayed += increaseAmountFactor * Time.deltaTime;
                     }
                     else { totalCrownDisplayed = actualTotalCrown; }
                 }
             }
         }
 
-        if (flashingIcon) {
+        //if (flashingIcon) {
 
-            if (Time.time - delayIconFlashTimerRef > delayBeforeIconFlash) {
-                if (Time.time - delayIconFlashTimerRef + delayBeforeIconFlash < crownIconFlashingTimeOnPickup) {
+        //    if (Time.time - delayIconFlashTimerRef > delayBeforeIconFlash) {
+        //        if (Time.time - delayIconFlashTimerRef + delayBeforeIconFlash < crownIconFlashingTimeOnPickup) {
 
-                    crownIcon.rectTransform.localScale = new Vector2(crownIconBulgeFactor, crownIconBulgeFactor);
+        //            crownIcon.rectTransform.localScale = new Vector2(crownIconBulgeFactor, crownIconBulgeFactor);
 
-                    if (iconFlashingOn) {
-                        if (Time.time - flashCrownIconTimerRef > crownIconFlashSpeed) {
-                            FlashCrownIconOn();
-                        }
-                    }
-                    else {
-                        if (Time.time - flashCrownIconTimerRef > crownIconFlashSpeed) {
-                            FlashCrownIconOff();
-                        }
-                    }
-                } else {
-                    StopFlashingCrownIcon();
-                    crownIcon.rectTransform.localScale = new Vector2(1, 1);
+        //            if (iconFlashingOn) {
+        //                if (Time.time - flashCrownIconTimerRef > crownIconFlashSpeed) {
+        //                    FlashCrownIconOn();
+        //                }
+        //            }
+        //            else {
+        //                if (Time.time - flashCrownIconTimerRef > crownIconFlashSpeed) {
+        //                    FlashCrownIconOff();
+        //                }
+        //            }
+        //        } else {
+        //            StopFlashingCrownIcon();
+        //            crownIcon.rectTransform.localScale = new Vector2(1, 1);
+        //        }
+        //    }
+        //}
+
+        if (gotMoney) {
+
+            if (Time.time - crownCounterAnimationFrameRefTime > crownCounterAnimationFrameChangeTime) {
+                if (crownCounterAnimationFrameIndex < crownCounterAnimationFrames.Count - 1) {
+                    crownCounterAnimationFrameIndex++;
+                    crownIcon.texture = crownCounterAnimationFrames[crownCounterAnimationFrameIndex];
                 }
+                else {
+                    gotMoney = false;
+                    crownCounterAnimationFrameIndex = 0;
+
+                    waitingForCounterFadeAway = true;
+                    fadeDelayRefTime = Time.time;
+                }
+
+                crownCounterAnimationFrameRefTime = Time.time;
             }
+        }
+
+        if (waitingForCounterFadeAway) {
+            if (Time.time - fadeDelayRefTime > delayBeforeCounterFades) {
+                waitingForCounterFadeAway = false;
+
+                fadeCounter = true;
+            }
+        }
+
+        if (fadeCounter) {
+
+            bool iconAndTextAreInvisible = true;
+
+            if (crownIcon.color.a > crownCounterLowAlphaThreshold) {
+                crownIcon.color = new Color(crownIcon.color.r, crownIcon.color.g, crownIcon.color.b, crownIcon.color.a - (counterFadeFactor * Time.deltaTime));
+                iconAndTextAreInvisible = false;
+            }
+            else {
+                crownIcon.color = new Color(crownIcon.color.r, crownIcon.color.g, crownIcon.color.b, 0);
+            }
+
+            if (crownText.color.a > crownCounterLowAlphaThreshold) {
+                crownText.color = new Color(crownText.color.r, crownText.color.g, crownText.color.b, crownText.color.a - (counterFadeFactor * Time.deltaTime));
+                iconAndTextAreInvisible = false;
+            }
+            else {
+                crownText.color = new Color(crownText.color.r, crownText.color.g, crownText.color.b, 0);
+            }
+
+            if (iconAndTextAreInvisible) { fadeCounter = false; }
         }
 
         if (flashingText) {
@@ -110,18 +179,24 @@ public class Crown : MonoBehaviour
                 if (Time.time - delayTextFlashTimerRef + delayBeforeTextFlash < crownTextFlashingTimeOnPickup) {
                     if (textFlashingOn) {
                         if (Time.time - flashCrownTextTimerRef > crownTextFlashSpeed) {
-                            crownText.rectTransform.localScale = new Vector2(crownTextBulgeFactor, crownTextBulgeFactor);
+                            if (makeTextBulge) {
+                                crownText.rectTransform.localScale = new Vector2(crownTextBulgeFactor, crownTextBulgeFactor);
+                            }
                             FlashCrownTextOn();
                         }
                     }
                     else {
                         if (Time.time - flashCrownTextTimerRef > crownTextFlashSpeed) {
-                            crownText.rectTransform.localScale = new Vector2(1, 1);
+                            if (makeTextBulge) {
+                                crownText.rectTransform.localScale = new Vector2(1, 1);
+                            }
                             FlashCrownTextOff();
                         }
                     }
                 } else {
-                    crownText.rectTransform.localScale = new Vector2(1, 1);
+                    if (makeTextBulge) {
+                        crownText.rectTransform.localScale = new Vector2(1, 1);
+                    }
                     StopFlashingCrownText();
                 }
             }
@@ -133,6 +208,7 @@ public class Crown : MonoBehaviour
         musicBox.PlayKaChing();
 
         actualTotalCrown += increaseAmount;
+        increaseAmountFactor = increaseAmount * crownCountIncreaseSpeed;
         flashingIcon = true;
         flashingText = true;
         totalIncreasing = true;
@@ -141,6 +217,10 @@ public class Crown : MonoBehaviour
         delayIconFlashTimerRef = Time.time;
         delayTextFlashTimerRef = Time.time;
         delayCrownTotalCalculationRef = Time.time;
+
+        gotMoney = true;
+        crownCounterAnimationFrameRefTime = Time.time;
+        crownIcon.color = crownIconColor;
     }
 
     public void FlashCrownIconOn() {

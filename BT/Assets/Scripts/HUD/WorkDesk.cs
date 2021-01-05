@@ -5,19 +5,15 @@ using UnityEngine.UI;
 
 public class WorkDesk : MonoBehaviour
 {
-    public bool openDesk, closeDesk, deskEnabled;
-    public RawImage[] deskScreens;
-    public RawImage itemViewScreen, itemLeftArrow, itemRightArrow;
-    public Text itemDescription;
-    public List<Transform> viewerInventory, viewerPotentialInventory;
-    public Transform itemPosePosition;
-    public Transform viewerInventoryHolder;
+    public bool deskEnabled;
+    public RawImage[] workDeskScreens;
 
     public string openDeskSound, closeDeskSound, changeItemSound, cantChangeItemSound, useItemSound, switchTabSound;
 
     private Teddy ted;
     private MailScreen mailManager;
     private NewsTicker tickerFeed;
+    private DeskScreen deskScreen;
     private ToolsScreen toolScreen;
     private SystemScreen sysScreen;
     private MusicPlayer musicBox;
@@ -29,7 +25,8 @@ public class WorkDesk : MonoBehaviour
     private int currentItemIndex;
     private float itemSelectionTimer;
     private const float itemSelectionDelay = 0.3f;
-    
+
+    private bool joystickCentered;
 
     // Start is called before the first frame update
     void Start()
@@ -37,20 +34,21 @@ public class WorkDesk : MonoBehaviour
         ted = FindObjectOfType<Teddy>();
         mailManager = FindObjectOfType<MailScreen>();
         tickerFeed = FindObjectOfType<NewsTicker>();
+        deskScreen = FindObjectOfType<DeskScreen>();
         toolScreen = FindObjectOfType<ToolsScreen>();
         sysScreen = FindObjectOfType<SystemScreen>();
         musicBox = FindObjectOfType<MusicPlayer>();
 
         HideAllSpringScreens();
         mailManager.showEMail = false;
-
-        openDesk = false;
-        closeDesk = false;
+        
         deskEnabled = false;
         deskState = DeskMode.Desk;
 
         currentItemIndex = 0;
         itemSelectionTimer = 0;
+
+        joystickCentered = true;
     }
 
     // Update is called once per frame
@@ -69,78 +67,174 @@ public class WorkDesk : MonoBehaviour
         if (deskEnabled) {
             tickerFeed.showTicker = true;
 
-            if ((Time.time - itemSelectionTimer) > (itemSelectionDelay * 0.2)) {
-                itemLeftArrow.rectTransform.localScale = new Vector2(1, 1);
-                itemRightArrow.rectTransform.localScale = new Vector2(1, 1);
-            }
-
             if (Input.GetButtonDown("Right Bumper")) {                                                                              //switch tabs...
                 HideAllSpringScreens();                                                                                             //first hide all of the Spring screens 
                 deskState = (DeskMode)((((int)deskState) + 1) % numOfDeskModes);                                                    //change the Desk mode
+                // If switched to the Desk tab, the text effects on the Status screen will restart, in case the Desk tab is already set to the Status screen
+                // Without this, if the Desk tab state is left on the Status Screen and the player switches back to it, the text will remain as before
+                if (deskState == DeskMode.Desk) { deskScreen.InitializeStatusTexts(); }
                 musicBox.PlaySPRINGDeskChangeTabSound();
-
-                PlaceItemToView(currentItemIndex);
-                itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
             }
 
             if (Input.GetButtonDown("Left Bumper")) {
                 HideAllSpringScreens();
                 deskState = (DeskMode)((((int)deskState) - 1 + numOfDeskModes) % numOfDeskModes);
+                // If switched to the Desk tab, the text effects on the Status screen will restart, in case the Desk tab is already set to the Status screen
+                // Without this, if the Desk tab state is left on the Status Screen and the player switches back to it, the text will remain as before
+                if (deskState == DeskMode.Desk) { deskScreen.InitializeStatusTexts(); }
                 musicBox.PlaySPRINGDeskChangeTabSound();
-
-                PlaceItemToView(currentItemIndex);
-                itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
             }
 
             switch (deskState) {
                 case DeskMode.Desk:
-                    deskScreens[0].enabled = true;
-                    ShowItemUI(true);
+                    workDeskScreens[0].enabled = true;
+                    deskScreen.ActivateDeskScreen();
                     mailManager.showEMail = false;
                     toolScreen.showTools = false;
-                    toolScreen.enableToolControls = false;
                     sysScreen.showOptions = false;
 
-                    RotateInventoryItem(75);
-
-                    if ((((Time.time - itemSelectionTimer) > itemSelectionDelay) && Mathf.Abs(Input.GetAxis("D-Pad Left Right")) > 0.1) || Input.GetButtonDown("Reticle")
-                        || Input.GetButtonDown("Hallucinations")) {         //switch item
-
-                        if (Input.GetAxis("D-Pad Left Right") > 0.01 || Input.GetButtonDown("Hallucinations")) {
-                            CycleItemsRight();
-                        } else if (Input.GetAxis("D-Pad Left Right") < -0.01 || Input.GetButtonDown("Reticle")) {
-                            CycleItemsLeft();
+                    if ((Time.time - itemSelectionTimer) > itemSelectionDelay) {
+                        if (Input.GetAxis("Left Joystick Horizontal") > 0.1) {
+                            deskScreen.PressRightLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Horizontal") < -0.1) {
+                            deskScreen.PressLeftLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Vertical") > 0.1) {
+                            deskScreen.PressUpLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Vertical") < -0.1) {
+                            deskScreen.PressDownLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Horizontal") > 0.1) {
+                            deskScreen.PressRightRS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Horizontal") < -0.1) {
+                            deskScreen.PressLeftRS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Vertical") > 0.1) {
+                            deskScreen.PressUpRS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Vertical") < -0.1) {
+                            deskScreen.PressDownRS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("D-Pad Left Right") > 0.01) {
+                            deskScreen.PressRightArrow();
+                            itemSelectionTimer = Time.time;
+                        }
+                        else if (Input.GetAxis("D-Pad Left Right") < -0.01) {
+                            deskScreen.PressLeftArrow();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetButtonDown("X Button")) {
+                            deskScreen.PressX();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetButtonDown("Circle Button")) {
+                            deskScreen.PressCircle();
+                            itemSelectionTimer = Time.time;
                         }
                     }
 
                     break;
                 case DeskMode.Tools:
-                    deskScreens[1].enabled = true;
-                    ShowItemUI(true);
+                    workDeskScreens[1].enabled = true;
+                    deskScreen.DeactivateDeskScreen();
                     mailManager.showEMail = false;
                     toolScreen.showTools = true;
-                    toolScreen.enableToolControls = true;
                     sysScreen.showOptions = false;
 
-                    RotateInventoryItem(75);
+                    if ((Time.time - itemSelectionTimer) > itemSelectionDelay) {
+                        if (Input.GetAxis("Left Joystick Horizontal") > 0.1) {
+                            toolScreen.PressRightLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Horizontal") < -0.1) {
+                            toolScreen.PressLeftLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Vertical") > 0.1) {
+                            toolScreen.PressUpLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Vertical") < -0.1) {
+                            toolScreen.PressDownLS();
+                            itemSelectionTimer = Time.time;
+                        }
+                    }
 
-                    if ((((Time.time - itemSelectionTimer) > itemSelectionDelay) && Mathf.Abs(Input.GetAxis("D-Pad Left Right")) > 0.01) || Input.GetButtonDown("Reticle")
-                        || Input.GetButtonDown("Hallucinations")) {         //switch item
+                    if (((Time.time - itemSelectionTimer) > itemSelectionDelay) || toolScreen.CanHoldRightStick()) {
                         
-                        if (Input.GetAxis("D-Pad Left Right") > 0.01 || Input.GetButtonDown("Hallucinations")) {
-                            CycleItemsRight();
-                        } else if (Input.GetAxis("D-Pad Left Right") < -0.01 || Input.GetButtonDown("Reticle")) {
-                            CycleItemsLeft();
+                        if (Input.GetAxis("Right Joystick Horizontal") > 0.1) {
+                            toolScreen.PressRightRS(Input.GetAxis("Right Joystick Horizontal"));
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Horizontal") < -0.1) {
+                            toolScreen.PressLeftRS(Input.GetAxis("Right Joystick Horizontal"));
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Vertical") > 0.1) {
+                            toolScreen.PressUpRS(Input.GetAxis("Right Joystick Vertical"));
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Right Joystick Vertical") < -0.1) {
+                            toolScreen.PressDownRS(Input.GetAxis("Right Joystick Vertical"));
+                            itemSelectionTimer = Time.time;
+                        }
+                    }
+
+                    if ((Time.time - itemSelectionTimer) > itemSelectionDelay) {
+                        if (Input.GetAxis("D-Pad Up Down") > 0.01 || Input.GetButtonDown("Hallucinations")) {
+                            toolScreen.PressUpArrow();
+                            itemSelectionTimer = Time.time;
+                        }
+                        else if (Input.GetAxis("D-Pad Up Down") < -0.01 || Input.GetButtonDown("Reticle")) {
+                            toolScreen.PressDownArrow();
+                            itemSelectionTimer = Time.time;
+                        }
+                    }
+
+                    if (((Time.time - itemSelectionTimer) > itemSelectionDelay) || toolScreen.CanHoldTriggers()) {
+                        if (Input.GetAxis("Triggers") > 0.1) {
+                            toolScreen.PressRightTrigger(Input.GetAxis("Triggers"));
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetAxis("Triggers") < -0.1) {
+                            toolScreen.PressLeftTrigger(Input.GetAxis("Triggers"));
+                            itemSelectionTimer = Time.time;
+                        }
+                    }
+
+                    if (Input.GetAxis("Triggers") > -0.05 && Input.GetAxis("Triggers") < 0.05) {
+                        toolScreen.ReleaseRightTrigger();
+                        toolScreen.ReleaseLeftTrigger();
+                    }
+
+                    if (Time.time - itemSelectionTimer > itemSelectionDelay) {
+                        if (Input.GetButtonDown("X Button")) {
+                            toolScreen.PressX();
+                            itemSelectionTimer = Time.time;
+                        }
+                        if (Input.GetButtonDown("Circle Button")) {
+                            toolScreen.PressCircle();
+                            itemSelectionTimer = Time.time;
                         }
                     }
 
                     break;
                 case DeskMode.Mail:
-                    deskScreens[2].enabled = true;
-                    ShowItemUI(false);
+                    workDeskScreens[2].enabled = true;
+                    deskScreen.DeactivateDeskScreen();
                     mailManager.showEMail = true;
                     toolScreen.showTools = false;
-                    toolScreen.enableToolControls = false;
                     sysScreen.showOptions = false;
 
                     if (mailManager.mailListActive) {
@@ -156,11 +250,10 @@ public class WorkDesk : MonoBehaviour
 
                     break;
                 case DeskMode.System:
-                    deskScreens[3].enabled = true;
-                    ShowItemUI(false);
+                    workDeskScreens[3].enabled = true;
+                    deskScreen.DeactivateDeskScreen();
                     mailManager.showEMail = false;
                     toolScreen.showTools = false;
-                    toolScreen.enableToolControls = false;
                     sysScreen.showOptions = true;
 
                     if ((((Time.time - itemSelectionTimer) > itemSelectionDelay) && Input.GetAxis("D-Pad Up Down") < 0) || Input.GetAxis("Mouse ScrollWheel") < 0) {
@@ -173,131 +266,23 @@ public class WorkDesk : MonoBehaviour
                     break;
             }
         } else {
-            HideAllSpringScreens();
-            PlaceItemToView(currentItemIndex);
-            itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";            
+            HideAllSpringScreens();          
         }
+
+        // Set joystickCentered equal to true if the left joystick is centered
+        // This will prevent rapid selection
+        if (Mathf.Abs(Input.GetAxis("Left Joystick Horizontal")) < 0.1 && Mathf.Abs(Input.GetAxis("Left Joystick Vertical")) < 0.1) { joystickCentered = true; }
     }
 
     void HideAllSpringScreens() {
-        for (int i = 0; i < deskScreens.Length; i++) {
-            deskScreens[i].enabled = false;
+        for (int i = 0; i < workDeskScreens.Length; i++) {
+            workDeskScreens[i].enabled = false;
         }
-
-        ShowItemUI(false);
+        deskScreen.DeactivateDeskScreen();
         mailManager.showEMail = false;
         tickerFeed.showTicker = false;
         toolScreen.showTools = false;
-        toolScreen.enableToolControls = false;
         sysScreen.showOptions = false;
-    }
-
-    private void ShowItemUI(bool showOrNo) {
-        itemViewScreen.enabled = showOrNo;
-        itemLeftArrow.enabled = showOrNo;
-        itemRightArrow.enabled = showOrNo;
-        itemDescription.enabled = showOrNo;
-    }
-
-    private void PlaceItemToView(int inventoryIndex) {
-        viewerInventory[inventoryIndex].parent = null;
-        viewerInventory[inventoryIndex].parent = itemPosePosition;
-        viewerInventory[inventoryIndex].localPosition = Vector3.zero;
-        viewerInventory[inventoryIndex].localRotation = Quaternion.identity;
-    }
-
-    private void RotateInventoryItem(float speed) {
-        viewerInventory[currentItemIndex].Rotate(0, speed * Time.deltaTime, 0);
-    }
-
-    private void ReturnInventoryItem(int inventoryIndex) {
-        viewerInventory[inventoryIndex].parent = null;
-        viewerInventory[inventoryIndex].parent = viewerInventoryHolder;
-        viewerInventory[inventoryIndex].localPosition = Vector3.zero;
-    }
-
-    public void AddItemToInventory(Transform newItem) {
-        if (newItem.GetComponent<MeshRenderer>()) { newItem.GetComponent<MeshRenderer>().enabled = false; }
-        if (newItem.GetComponent<SkinnedMeshRenderer>()) { newItem.GetComponent<SkinnedMeshRenderer>().enabled = false; }
-        if (newItem.GetComponent<Rigidbody>()) { newItem.GetComponent<Rigidbody>().isKinematic = true; }
-        if (newItem.GetComponent<Collider>()) { newItem.GetComponent<Collider>().enabled = false; }
-
-        newItem.parent = ted.transform;
-        newItem.localPosition = Vector3.zero;
-        newItem.localRotation = Quaternion.identity;
-
-        AddItemToViewer(newItem);
-    }
-
-    public void AddItemToViewer(Transform newItem) {
-        if (IsItemInPotentialInventory(newItem.name)) {
-            if (!IsItemAlreadyInInventory(newItem.name)) {
-                for (int i = 0; i < viewerPotentialInventory.Count; i++) {
-                    if (viewerPotentialInventory[i].name == newItem.name) {
-                        viewerInventory.Add(viewerPotentialInventory[i]);
-                    }
-                }
-            } else {
-                
-
-            }
-        }
-    }
-
-    private void RemoveViewerItem(string itemName) {
-        for (int i = 0;i<viewerInventory.Count; i++) {
-            if (viewerInventory[i].name == itemName) {
-                viewerInventory.Remove(viewerInventory[i]);
-            }
-        }
-    }
-
-    private bool IsItemAlreadyInInventory(string itemName) {
-        for (int i = 0; i < viewerInventory.Count; i++) {
-            if (viewerInventory[i].name == itemName) { return true; }
-        }
-
-        return false;
-    }
-
-    private bool IsItemInPotentialInventory(string itemName) {
-        for (int i = 0; i < viewerPotentialInventory.Count; i++) {
-            if (viewerPotentialInventory[i].name == itemName) { return true; }
-        }
-
-        return false;
-    }
-
-    private void CycleItemsRight() {
-        itemRightArrow.rectTransform.localScale = new Vector2(0.5f, 0.5f);
-
-        itemSelectionTimer = Time.time;
-
-        if (viewerInventory.Count > 1) {
-            ReturnInventoryItem(currentItemIndex);
-            currentItemIndex = (currentItemIndex + viewerInventory.Count + 1) % viewerInventory.Count;
-            PlaceItemToView(currentItemIndex);
-            itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
-            musicBox.PlaySPRINGDeskChangeItemSound();
-        } else {
-            musicBox.PlaySPRINGDeskNoItemToChangeSound();
-        }
-    }
-
-    private void CycleItemsLeft() {
-        itemLeftArrow.rectTransform.localScale = new Vector2(0.5f, 0.5f);
-
-        itemSelectionTimer = Time.time;
-
-        if (viewerInventory.Count > 1) {
-            ReturnInventoryItem(currentItemIndex);
-            currentItemIndex = (currentItemIndex + viewerInventory.Count - 1) % viewerInventory.Count;
-            PlaceItemToView(currentItemIndex);
-            itemDescription.text = "Item:\n<color=#ffffff9b>" + viewerInventory[currentItemIndex].name + "</color>";
-            musicBox.PlaySPRINGDeskChangeItemSound();
-        } else {
-            musicBox.PlaySPRINGDeskNoItemToChangeSound();
-        }
     }
 
     public void CallDeskOpenSound() {

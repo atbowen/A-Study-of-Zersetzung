@@ -10,7 +10,7 @@ public class PanelsBottom : MonoBehaviour
     public RawImage responseSelectionBar, openingPanelLoadingBar;
     public List<Texture> openingPanelLoadingFrames;
 
-    public RawImage FakeTedFunctionIcon, callHQFunctionIcon, callStrikeFunction, playMusicFunctionIcon;
+    public RawImage FakeTedFunctionIcon, callHQFunctionIcon, callStrikeFunctionIcon, playMusicFunctionIcon;
     public float specialFunctionsAvailableAlpha, specialFunctionsUnavailAlpha, specialFunctionsAlphaChange;
 
     public Text promptText, responseText;
@@ -234,13 +234,13 @@ public class PanelsBottom : MonoBehaviour
     public void ShowSpecialFunctionsIcons(bool yesOrNo) {
         FakeTedFunctionIcon.enabled = yesOrNo;
         callHQFunctionIcon.enabled = yesOrNo;
-        callStrikeFunction.enabled = yesOrNo;
+        callStrikeFunctionIcon.enabled = yesOrNo;
         playMusicFunctionIcon.enabled = yesOrNo;
 
         if (!yesOrNo) {
             FakeTedFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
             callHQFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
-            callStrikeFunction.transform.GetChild(0).GetComponent<Text>().enabled = false;
+            callStrikeFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
             playMusicFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
         }
     }
@@ -252,6 +252,10 @@ public class PanelsBottom : MonoBehaviour
 
     public bool IsCurrentSpecialFunctionFakeTed() {
         return (availableFunctionsIcons[specialFunctionsCurrentIndex] == FakeTedFunctionIcon);
+    }
+
+    public bool IsCurrentSpecialFunctionStrikeCall() {
+        return (availableFunctionsIcons[specialFunctionsCurrentIndex] == callStrikeFunctionIcon);
     }
 
     public void HighlightPreviousFunction() {
@@ -299,12 +303,12 @@ public class PanelsBottom : MonoBehaviour
             callHQFunctionIcon.color = new Color(callHQFunctionIcon.color.r, callHQFunctionIcon.color.g, callHQFunctionIcon.color.b, specialFunctionsUnavailAlpha);
         }
 
-        if (1 == 1) {
-            availableFunctionsIcons.Add(callStrikeFunction);
-            callStrikeFunction.color = new Color(callStrikeFunction.color.r, callStrikeFunction.color.g, callStrikeFunction.color.b, specialFunctionsAvailableAlpha);
+        if (FindObjectOfType<StrikePlaneCaller>().CheckAvailability()) {
+            availableFunctionsIcons.Add(callStrikeFunctionIcon);
+            callStrikeFunctionIcon.color = new Color(callStrikeFunctionIcon.color.r, callStrikeFunctionIcon.color.g, callStrikeFunctionIcon.color.b, specialFunctionsAvailableAlpha);
         }
         else {
-            callStrikeFunction.color = new Color(callStrikeFunction.color.r, callStrikeFunction.color.g, callStrikeFunction.color.b, specialFunctionsUnavailAlpha);
+            callStrikeFunctionIcon.color = new Color(callStrikeFunctionIcon.color.r, callStrikeFunctionIcon.color.g, callStrikeFunctionIcon.color.b, specialFunctionsUnavailAlpha);
         }
         
         if (1 == 1) {
