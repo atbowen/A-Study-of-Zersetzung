@@ -5,7 +5,7 @@ using UnityEngine;
 public class TextAndSpeech : MonoBehaviour
 {
     // This is for cataloguing this entities lines of text for comms interactivity
-    public Prompt openingTextLine;
+    public Prompt openingTextLine, openingStardaterLine;
     public Prompt[] textLines;
     [SerializeField]
     public List<ConversationStarter> friendLines;
@@ -18,7 +18,7 @@ public class TextAndSpeech : MonoBehaviour
 
     private MusicPlayer musicBox;
 
-    private AudioSource speechAudio;
+    private AudioSource speechAudio, stardaterSpeechAudio;
     private AudioClip currentClip;
     private Animator faceAnim;
     private bool faceIsAnimating, readyToPlayAudio;
@@ -29,9 +29,13 @@ public class TextAndSpeech : MonoBehaviour
     private char previousEmotionChar;
     private int currentMouthShapeCharIndex, currentEmotionCharIndex;
 
+    private bool currentLineIsBroadcastedOnStardaterChat = false;
+
     void Start() {
         musicBox = FindObjectOfType<MusicPlayer>();
+
         speechAudio = this.transform.GetComponent<AudioSource>();
+        stardaterSpeechAudio = FindObjectOfType<DatingScreen>().transform.GetComponent<AudioSource>();
 
         if (face != null) { faceAnim = face.GetComponent<Animator>(); }
 
@@ -55,7 +59,13 @@ public class TextAndSpeech : MonoBehaviour
         if (faceIsAnimating) {
             if (Time.time - faceAnimationStartRefTime > faceAnimationStartDelay) {
                 if (readyToPlayAudio) {
+
                     speechAudio.PlayOneShot(currentClip);
+
+                    if (currentLineIsBroadcastedOnStardaterChat) {
+                        stardaterSpeechAudio.PlayOneShot(currentClip);
+                        currentLineIsBroadcastedOnStardaterChat = false;
+                    }
 
                     readyToPlayAudio = false;
                 }
@@ -115,6 +125,43 @@ public class TextAndSpeech : MonoBehaviour
         currentClip = clip;
         speechAudio.Stop();
         readyToPlayAudio = true;
+    }
+
+    // The extra parameter allows for duplication of speech through the Stardater chat
+    public void PlayClipAndStartAnimatingFace(AnimationAudio speechLine, bool broadcastOnStardaterChat) {
+
+        AudioClip clip = speechLine.audioLine;
+        float delay = speechLine.startDelayInSec;
+        string animationKey = speechLine.animationCues;
+        float mouthShapeIntervalOverride = speechLine.mouthPoseOverrideTimeInterval;
+        string emotionKey = speechLine.emotionCues;
+        float emotionIntervalOverride = speechLine.feelingOverrideTimeInterval;
+        string endingEmote = speechLine.triggerStringForEndingEmotion;
+
+        faceIsAnimating = false;
+        mouthShapeCode.Clear();
+        emotionCode.Clear();
+        char[] tempAnimationCode = animationKey.ToCharArray();
+        foreach (char ch in tempAnimationCode) { mouthShapeCode.Add(ch); }
+        char[] tempEmotionCode = emotionKey.ToCharArray();
+        foreach (char ch in tempEmotionCode) { emotionCode.Add(ch); }
+
+        faceAnimationStartDelay = delay;
+        if (endingEmote != "") { endingEmotion = endingEmote; }
+        if (mouthShapeIntervalOverride > 0) { mouthShapeTimeIntervalActual = mouthShapeIntervalOverride; }
+        else { mouthShapeTimeIntervalActual = mouthShapeDefaultTimeInterval; }
+        if (emotionIntervalOverride > 0) { emotionTimeIntervalActual = emotionIntervalOverride; }
+        else { emotionTimeIntervalActual = emotionDefaultTimeInterval; }
+        faceAnimationStartRefTime = Time.time;
+        currentMouthShapeCharIndex = 0;
+        currentEmotionCharIndex = 0;
+
+        faceIsAnimating = true;
+        currentClip = clip;
+        speechAudio.Stop();
+        readyToPlayAudio = true;
+
+        currentLineIsBroadcastedOnStardaterChat = broadcastOnStardaterChat;
     }
 
     private void ReadMouthShapeCharPairAndChangeFacePose() {

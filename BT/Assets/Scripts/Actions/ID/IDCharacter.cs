@@ -15,6 +15,10 @@ public class IDCharacter : ID
     public Transform head, parentBoneOfHead;
 
     public List<Collider> additionalColliders;
+    
+    public DatingProfile stardaterProfile;
+    public Transform stardaterCamHolder;
+    public bool makeProfileAvailable;
 
     private Vector3 headInitialPos;
     private Quaternion headInitialRot;

@@ -566,7 +566,7 @@ public class BodyCam : MonoBehaviour {
                                         anim.SetLayerWeight(7, 0);
                                         anim.SetLayerWeight(8, 0);
                                     } else if (isHoldingItem && !isReadyingItem) {
-                                        anim.SetLayerWeight(4, 0);
+                                        anim.SetLayerWeight(4, 1);
                                         anim.SetLayerWeight(5, 0);
                                         anim.SetLayerWeight(6, 0);
                                         anim.SetLayerWeight(7, 1);
@@ -618,7 +618,7 @@ public class BodyCam : MonoBehaviour {
                                         anim.SetLayerWeight(7, 0);
                                         anim.SetLayerWeight(8, 0);
                                     } else if (isHoldingItem && !isReadyingItem) {
-                                        anim.SetLayerWeight(3, 0);
+                                        anim.SetLayerWeight(3, 1);
                                         anim.SetLayerWeight(5, 0);
                                         anim.SetLayerWeight(6, 0);
                                         anim.SetLayerWeight(7, 1);
@@ -676,6 +676,7 @@ public class BodyCam : MonoBehaviour {
                                     anim.SetLayerWeight(7, 0);
                                     anim.SetLayerWeight(8, 1);
                                 } else {
+                                    anim.SetLayerWeight(3, 1);
                                     anim.SetLayerWeight(6, 0);
                                     anim.SetLayerWeight(7, 0);
                                     anim.SetLayerWeight(8, 0);

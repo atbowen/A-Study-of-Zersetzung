@@ -5,7 +5,14 @@ using UnityEngine;
 [System.Serializable]
 public class ProjectFile
 {
-    public string projectName;
+    [SerializeField]
+    private string projectTitle;
+    [SerializeField, TextArea]
+    private string projectDescription;
+    [SerializeField]
+    private Texture mainImage;
+
+    public List<ProjectBulletPoint> bulletPoints;
 
     public List<CrimeScene> crimeScenes;
 
@@ -27,6 +34,26 @@ public class ProjectFile
         infraAndMatSciCompleteStatus = messageSet.infraAndMatSciCompleteStatus;
         trajAndMatSciCompleteStatus = messageSet.trajAndMatSciCompleteStatus;
         allCompleteStatus = messageSet.allCompleteStatus;
+    }
+
+    public string GetProjectTitle() {
+        return projectTitle;
+    }
+
+    public string GetProjectDescription() {
+        return projectDescription;
+    }
+
+    public Texture GetProjectMainImage() {
+        return mainImage;
+    }
+
+    public void ChangeProjectTitle(string newTitle) {
+        projectTitle = newTitle;
+    }
+
+    public void ChangeProjectDescription(string newDescription) {
+        projectDescription = newDescription;
     }
 }
 

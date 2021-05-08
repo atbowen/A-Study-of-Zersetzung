@@ -94,7 +94,7 @@ public class ImageToAnalyze : EvidenceData
     }
 
     private ImageRefCapture SearchForImageRefInDatabase(ImageCapture imgCap) {
-        ProjectHandler projHandler = FindObjectOfType<ProjectHandler>();
+        ProjectReview projHandler = FindObjectOfType<ProjectReview>();
 
         if (projHandler.refImagesOfInterest.Count > 0) {
             foreach (ImageRefCapture imgRef in projHandler.refImagesOfInterest) {
@@ -128,7 +128,7 @@ public class ImageToAnalyze : EvidenceData
         // Return the compiled result blurb text, but highlighting the indexed blurb
         if ((imagesFound.Count > 0) && (referenceIndexToShow < imagesFound.Count - 1)) {
             for (int i = 0; i < imagesOfInterest.Count; i++) {
-                if (i == referenceIndexToShow)  { tempResults = tempResults + matchPrefix + "<color=" + HLColorCodeTxt + ">" + imagesFound[i].thingRevealed + "</color>" + matchSuffix; }
+                if (i == referenceIndexToShow)  { tempResults = tempResults + matchPrefix + "<color=#" + HLColorCodeTxt + ">" + imagesFound[i].thingRevealed + "</color>" + matchSuffix; }
                 else                            { tempResults = tempResults + matchPrefix + imagesFound[i].thingRevealed + matchSuffix; }
             }
         }
@@ -223,6 +223,8 @@ public class ImageToAnalyze : EvidenceData
     }
 
     public void ClearFoundImagesList() {
-        imagesFound.Clear();
+        if (imagesFound.Count > 0) {
+            imagesFound.Clear();
+        }
     }
 }

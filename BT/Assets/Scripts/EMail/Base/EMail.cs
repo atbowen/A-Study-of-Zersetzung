@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 [CreateAssetMenu(menuName = "Email")]
 public class EMail : ScriptableObject {
-    public EMailAttachment[] attachments;
+
+    public List<EMailAttachment> attachments;
 
     public string senderInfo, receiverInfo;
 

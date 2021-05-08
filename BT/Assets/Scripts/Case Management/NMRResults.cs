@@ -16,9 +16,13 @@ public class NMRResults : EvidenceData {
     public List<float> calculatedPeaks;
     public int shiftRange = 75;
 
+    [SerializeField]
+    private Texture matrix;
+
+
     // Finds potential matches in ProjectHandler NMRRefResults, adds them to matches
     public override void DetermineMatches() {
-        ProjectHandler projHandler = FindObjectOfType<ProjectHandler>();
+        ProjectReview projHandler = FindObjectOfType<ProjectReview>();
 
         matches.Clear();
 
@@ -58,27 +62,41 @@ public class NMRResults : EvidenceData {
     }
 
     public override string GetResults() {
-        ProjectHandler projHandler = FindObjectOfType<ProjectHandler>();
+        ProjectReview projHandler = FindObjectOfType<ProjectReview>();
+        ToolsScreen toolStuff = FindObjectOfType<ToolsScreen>();
 
         string results;
 
-        results = "Sample  peaks: " + maxima.Count + "\n";
+        string headerHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsHeaderColor());
+        string bodyHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsBodyColor());
+        string shiftHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetShiftValueColor());
+        string peakHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetPeakValueColor());
+        string sampleCursorHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetSampleCursorColor());
 
         if (maxima.Count > 0) {
-            for (int i = 0; i < maxima.Count; i++) {
-                results = results + "(" + (i + 1) + ")\t\t" + maxima[i].shift + "\t\t{" + maxima[i].intensity + "}\n";
-            }
-        } else { results = results + "()---<  EMPTY"; }
 
-        string matchRatingTxt = "\nMatch  Rating:\n";
+            results = "<color=#" + headerHex + ">Signals  found: " + maxima.Count + "</color>\n";
+
+            for (int i = 0; i < maxima.Count; i++) {
+                results = results + "<color=#" + bodyHex + ">" + (i + 1) + ".  (</color><color=#" + shiftHex + ">" + maxima[i].shift + 
+                            "</color><color=#" + bodyHex + ">,  </color><color=#" + peakHex + ">" + maxima[i].intensity.ToString("0.#") + "</color><color=#" + bodyHex + ">)</color>\n";
+            }
+        } else { results = "<color=#" + bodyHex + ">NO  SIGNALS</color>"; }
+
+        string matchRatingTxt = "<color=#" + headerHex + ">Match  Rating:</color>\n";
         //string matchInfoTxt = "\nMatches:  ";
         //string underMinimumPeakNumTxt = "\nPeak min not met for:  ";
 
         if (matches.Count > 0) {
-            foreach (NMRRefResults NMRRef in matches) {
-                
+            for (int i = 0; i < matches.Count; i++) {
+
+                float rating = this.ReturnMatchRatingWithReferenceSet(matches[i]);
+                string ratingHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetMatchRatingColor(rating));
+                string matchRefHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetMatchRefColor(i));
+
                 // Add match info to results text
-                matchRatingTxt = matchRatingTxt + "(" + NMRRef.sampleAbbName + ") -\t" + this.ReturnMatchRatingWithReferenceSet(NMRRef).ToString("0.#") + ";\n";
+                //matchRatingTxt = matchRatingTxt + "(" + NMRRef.sampleAbbName + ") -\t" + this.ReturnMatchRatingWithReferenceSet(NMRRef).ToString("0.#") + ";\n";
+                matchRatingTxt = matchRatingTxt + "<color=#" + matchRefHex + ">" + matches[i].sampleAbbName + "    </color><color=#" + ratingHex + ">" + rating.ToString("0.#") + "</color>\n";
                 //matchInfoTxt   = matchInfoTxt + NMRRef.matchNotes + ";  ";
 
                 //if (this.maxima.Count < NMRRef.minNumOfPeakMatchesRequired) {
@@ -91,21 +109,92 @@ public class NMRResults : EvidenceData {
         return results + matchRatingTxt;  //+ underMinimumPeakNumTxt;
     }
 
-    public override string GetResults(int refIndexToShow) {
-        ProjectHandler projHandler = FindObjectOfType<ProjectHandler>();
+    public override string GetResults(int samplePeakIndex) {
+        ProjectReview projHandler = FindObjectOfType<ProjectReview>();
+
+        ToolsScreen toolStuff = FindObjectOfType<ToolsScreen>();
 
         string results;
 
-        results = "Sample  peaks: " + maxima.Count + "\n";
+        string headerHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsHeaderColor());
+        string bodyHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsBodyColor());
+        string shiftHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetShiftValueColor());
+        string peakHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetPeakValueColor());
 
         if (maxima.Count > 0) {
+
+            results = "<color=#" + headerHex + ">Signals  found: </color><color=#" + bodyHex + ">" + maxima.Count + "</color>\n";
+
             for (int i = 0; i < maxima.Count; i++) {
-                results = results + "(" + (i + 1) + ")--->  " + maxima[i].shift + " {" + maxima[i].intensity + "}\n";
+                results = results + "<color=#" + bodyHex + ">" + (i + 1) + ".  (</color><color=#" + shiftHex + ">" + maxima[i].shift +
+                            "</color><color=#" + bodyHex + ">,  </color><color=#" + peakHex + ">" + maxima[i].intensity.ToString("0.#") + "</color><color=#" + bodyHex + ">)</color>\n";
             }
         }
-        else { results = results + "()---<  EMPTY"; }
+        else { results = "<color=#" + bodyHex + ">NO  SIGNALS</color>"; }
 
         return results;
+    }
+
+    public string GetMatSciResults(int samplePeakIndex, bool showRatings) {
+        ProjectReview projHandler = FindObjectOfType<ProjectReview>();
+        ToolsScreen toolStuff = FindObjectOfType<ToolsScreen>();
+
+        string results;
+
+        string headerHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsHeaderColor());
+        string bodyHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsBodyColor());
+        string shiftHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetShiftValueColor());
+        string peakHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetPeakValueColor());
+        string sampleCursorHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetSampleCursorColor());
+
+        if (maxima.Count > 0) {
+
+            results = "<color=#" + headerHex + ">Signals  found: " + maxima.Count + "</color>\n";
+
+            for (int i = 0; i < maxima.Count; i++) {
+                if (i == samplePeakIndex) {
+                    results = results + "<color=#" + sampleCursorHex + "> < </color><color=#" + shiftHex + ">" + maxima[i].shift +
+                                "</color><color=#" + sampleCursorHex + ">    </color><color=#" + peakHex + ">" + maxima[i].intensity.ToString("0.#") +
+                                "</color><color=#" + sampleCursorHex + ">></color>\n";
+                }
+                else {
+                    results = results + "<color=#" + bodyHex + "> < </color><color=#" + shiftHex + ">" + maxima[i].shift +
+                                "</color><color=#" + bodyHex + ">    </color><color=#" + peakHex + ">" + maxima[i].intensity.ToString("0.#") + "</color><color=#" + bodyHex + ">></color>\n";
+                }
+            }
+        }
+        else { results = "<color=#" + bodyHex + ">NO  SIGNALS</color>"; }
+
+        string matchRatingTxt = "";
+
+        if (showRatings) {
+
+            matchRatingTxt = "<color=#" + headerHex + ">Match  Rating:</color>\n";
+
+            //string matchInfoTxt = "\nMatches:  ";
+            //string underMinimumPeakNumTxt = "\nPeak min not met for:  ";
+
+            if (matches.Count > 0) {
+                for (int i = 0; i < matches.Count; i++) {
+
+                    float rating = this.ReturnMatchRatingWithReferenceSet(matches[i]);
+                    string ratingHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetMatchRatingColor(rating));
+                    string matchRefHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetMatchRefColor(i));
+
+                    // Add match info to results text
+                    //matchRatingTxt = matchRatingTxt + "(" + NMRRef.sampleAbbName + ") -\t" + this.ReturnMatchRatingWithReferenceSet(NMRRef).ToString("0.#") + ";\n";
+                    matchRatingTxt = matchRatingTxt + "<color=#" + matchRefHex + ">" + matches[i].sampleAbbName + "   </color><color=#" + ratingHex + ">" + rating.ToString("0.#") + "</color>\n";
+                    //matchInfoTxt   = matchInfoTxt + NMRRef.matchNotes + ";  ";
+
+                    //if (this.maxima.Count < NMRRef.minNumOfPeakMatchesRequired) {
+                    //    underMinimumPeakNumTxt = underMinimumPeakNumTxt + NMRRef.sampleName + ";  ";
+                    //}
+
+                }
+            }
+        }
+
+        return results + matchRatingTxt;  //+ underMinimumPeakNumTxt;
     }
 
     public override string GetNotes() {
@@ -134,14 +223,24 @@ public class NMRResults : EvidenceData {
             if (matches[referenceIndexToShow].refNotes != "")       { notesInfoTxt = notesInfoTxt + matches[referenceIndexToShow].refNotes + "\n"; }
             if (matches[referenceIndexToShow].criticalNote != "")   { notesInfoTxt = notesInfoTxt + matches[referenceIndexToShow].criticalNote; }
         }
-
+        
         return notesInfoTxt;
     }
 
     public string GetPeak(int refIndex, int peakIndex) {
+        ToolsScreen toolStuff = FindObjectOfType<ToolsScreen>();
         NMRRefPeak peak = matches[refIndex].maxima[peakIndex];
 
-        return "\n" + matches[refIndex].sampleName + ":\n(" + (peakIndex + 1) + ")--->  " + peak.shift + " {" + peak.intensity + "}\n" + peak.speciesName; 
+        string headerHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetResultsHeaderColor());
+        string shiftHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetShiftValueColor());
+        string peakHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetPeakValueColor());
+        string matchRefHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetMatchRefColor(refIndex));
+        string refCursorHex = ColorUtility.ToHtmlStringRGBA(toolStuff.GetRefCursorColor());
+
+        return "\n<color=#" + matchRefHex + ">" + matches[refIndex].sampleName + "</color><color=#" + headerHex + ">:</color>\n" +
+                    "<color=#" + refCursorHex + "> < </color><color=#" + shiftHex + ">" + peak.shift + "</color>    <color=#" +
+                    peakHex + ">" + peak.intensity.ToString("0.#") + "</color><color=#" + refCursorHex + ">" + "></color>\n" +
+                    "<color=#" + refCursorHex + ">" + peak.speciesName + "</color>"; 
     }
 
     public float ReturnMatchRatingWithReferenceSet(NMRRefResults otherSet) {

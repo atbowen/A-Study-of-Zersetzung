@@ -75,7 +75,10 @@ public class NPCIntelligence : MonoBehaviour
         faceAnim = face.GetComponent<Animator>();
         speechController = this.transform.GetComponent<TextAndSpeech>();
         tedHead = FindObjectOfType<TeddyHead>();
-        inv = this.transform.Find("Inventory").GetComponent<Inventory>();
+
+        if (this.transform.Find("Inventory") != null) {
+            inv = this.transform.Find("Inventory").GetComponent<Inventory>();
+        }
         actCoord = FindObjectOfType<ActionSceneCoordinator>();
 
         // Set blinking parameters

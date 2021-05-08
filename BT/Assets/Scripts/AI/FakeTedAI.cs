@@ -407,13 +407,13 @@ public class FakeTedAI : MonoBehaviour
 
     public void ActivateFakeTed() {
         foreach (SkinnedMeshRenderer rend in renderers) {
-            if (rend.material.GetColor("_Color").a < fakeTedMaxAlpha) {
-                foreach (Material mat in rend.materials) {
-                    Color origColor = mat.GetColor("_Color");
-                    Color newColor = new Color(origColor.r, origColor.g, origColor.b, fakeTedMaxAlpha);
-                    mat.SetColor("_Color", newColor);
-                }
-            }
+            //if (rend.material.GetColor("_Color").a < fakeTedMaxAlpha) {
+            //    foreach (Material mat in rend.materials) {
+            //        Color origColor = mat.GetColor("_Color");
+            //        Color newColor = new Color(origColor.r, origColor.g, origColor.b, fakeTedMaxAlpha);
+            //        mat.SetColor("_Color", newColor);
+            //    }
+            //}
             rend.enabled = true;
         }
         behavior = State.Idle;

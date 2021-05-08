@@ -23,7 +23,7 @@ public class CommsController : MonoBehaviour {
 
     public InputField textInput;
     public bool textActivated, textActive;
-    public Prompt noTargetPrompt, startingPrompt;
+    public Prompt noTargetPrompt, startingPrompt, stardaterTedPrompt;
     public string currentText, currentResponseText;
     public bool textIsUnravelled, responseTextIsUnravelled;
     public int numOfCharsToUnravelPerInterval, numOfResponseCharsToUnravelPerInterval;
@@ -55,6 +55,8 @@ public class CommsController : MonoBehaviour {
     private AudioSource transmissionAudio;
     private NPCIntelligence transmissionAI;
     private ActionSceneCoordinator actCoord;
+
+    private bool isUsingStardater, isInDatingChat;
 
     private Prompt currentLine;
 
@@ -138,6 +140,9 @@ public class CommsController : MonoBehaviour {
         loadingTextTimeRef = 0;
 
         closeEnoughToCommunicate = false;
+
+        isUsingStardater = false;
+        isInDatingChat = false;
     }
 
     void Start () {
@@ -150,8 +155,9 @@ public class CommsController : MonoBehaviour {
         if (textActive) {
             scanner.HideReticleAndText(true);
 
-            if ((transmissionSpeech != null && closeEnoughToCommunicate && !currentLine.continues) || (startingPrompt != null && talkingToFakeTed)) 
+            if ((transmissionSpeech != null && closeEnoughToCommunicate && !currentLine.continues) || (startingPrompt != null && talkingToFakeTed) || (transmissionSpeech != null && isInDatingChat)) 
                                                                     { panels.ShowInfoBgdPanel(commsDisplay.cachedTextGenerator.lineCount, responseText.cachedTextGenerator.lineCount); }
+            //else if (transmissionID.GetType() == typeof(IDDate))    { panels.shoinfo}
             else                                                    { panels.ShowInfoBgdPanelPromptOnly(commsDisplay.cachedTextGenerator.lineCount); }
             commsDisplay.text = unravellingPromptText;
             responseText.text = unravellingResponseTransitionText;
@@ -233,7 +239,7 @@ public class CommsController : MonoBehaviour {
                     //}
                 }
 
-                if ((transmissionSpeech != null && closeEnoughToCommunicate) || (startingPrompt != null && talkingToFakeTed)) {
+                if ((transmissionSpeech != null && closeEnoughToCommunicate) || (startingPrompt != null && talkingToFakeTed) || transmissionSpeech != null && isInDatingChat) {
                     // Show loading text for responses--responses load once the current prompt text is shown completely
                     // Loading text (and subsequent response text) does not show if the current prompt continues
                     if (showingLoadingText && !currentLine.continues && (Time.time - unravellingTextStartTime > delayBeforeShowingLoadingString)) {
@@ -304,61 +310,80 @@ public class CommsController : MonoBehaviour {
             ClearConversationLogs();
             panels.NoSelection();
 
-            if (rightEye.RightEyeTargetID() != null) {
-                transmissionID = rightEye.RightEyeTargetID();
+            // Shouldn't need anything here if in dating chat--everything initialized in StartDatingChat(), including rejogging the this loop by setting textActive = false
+            if (isUsingStardater) {
 
-                //if (transmissionID.transform.parent.GetComponent<Collider>() != null) {
-                //    Collider col = transmissionID.transform.parent.GetComponent<Collider>();
-                //    distance = Vector3.Distance(col.ClosestPoint(bCam.transform.position), bCam.transform.position);
-                //}
-                //else {
-                //    distance = Vector3.Distance(transmissionID.transform.parent.position, bCam.transform.position);
-                //}
+                if (isInDatingChat) {
 
-                if (transmissionID.GetDistanceToActiveIDCollider(bCam.transform.position) < transmissionID.maxDistanceToActivate) {
+                }
+                else {
 
-                    closeEnoughToCommunicate = true;
+                    dateScreen.EnableScreen(true);
+                    transmissionSpeech = null;
+                    currentLine = stardaterTedPrompt;
 
-                    if (transmissionID.GetType() == typeof(IDDate)) {
-                        dateScreen.EnableScreen(true);
-                        camMaster.OverrideReticle(true);
-                    }
-                    else if (transmissionID.GetType() == typeof(IDCharacter)) {
-                        IDCharacter idChar = (IDCharacter)transmissionID;
-                        if (idChar.portrait != null) {
-                            portrait.texture = idChar.portrait;
-                            portraitFrame.enabled = true;
-                            portrait.enabled = true;
+                }
+
+            }
+            else {
+                if (rightEye.RightEyeTargetID() != null) {
+                    transmissionID = rightEye.RightEyeTargetID();
+
+                    //if (transmissionID.transform.parent.GetComponent<Collider>() != null) {
+                    //    Collider col = transmissionID.transform.parent.GetComponent<Collider>();
+                    //    distance = Vector3.Distance(col.ClosestPoint(bCam.transform.position), bCam.transform.position);
+                    //}
+                    //else {
+                    //    distance = Vector3.Distance(transmissionID.transform.parent.position, bCam.transform.position);
+                    //}
+
+                    if (transmissionID.GetDistanceToActiveIDCollider(bCam.transform.position) < transmissionID.maxDistanceToActivate) {
+
+                        closeEnoughToCommunicate = true;
+
+                        if (transmissionID.GetType() == typeof(IDDate)) {
+                            dateScreen.EnableScreen(true);
+                            startingPrompt = stardaterTedPrompt;
+                            //camMaster.OverrideReticle(true);
+                        }
+                        else if (transmissionID.GetType() == typeof(IDCharacter)) {
+                            IDCharacter idChar = (IDCharacter)transmissionID;
+                            if (idChar.portrait != null) {
+                                portrait.texture = idChar.portrait;
+                                portraitFrame.enabled = true;
+                                portrait.enabled = true;
+                            }
                         }
                     }
                 }
-            }
 
-            if (rightEye.RightEyeTargetSpeech() != null) {
-                transmissionSpeech = rightEye.RightEyeTargetSpeech();
+                if (rightEye.RightEyeTargetSpeech() != null) {
+                    transmissionSpeech = rightEye.RightEyeTargetSpeech();
 
-                if (closeEnoughToCommunicate) {
-                    startingPrompt = transmissionSpeech.openingTextLine;
-                    responseText.enabled = true;
+                    if (closeEnoughToCommunicate) {
+                        startingPrompt = transmissionSpeech.openingTextLine;
+                        responseText.enabled = true;
+                    }
+                    else {
+                        startingPrompt = null;
+                        responseText.enabled = false;
+                    }
+                }
+
+                if (rightEye.RightEyeTargetAI() != null) {
+                    transmissionAI = rightEye.RightEyeTargetAI();
+                }
+
+                if (rightEye.RightEyeTargetAudio() != null) {
+                    transmissionAudio = rightEye.RightEyeTargetAudio();
+                }
+
+                if (startingPrompt != null) {
+                    currentLine = startingPrompt;
                 }
                 else {
-                    startingPrompt = null;
-                    responseText.enabled = false;
+                    currentLine = noTargetPrompt;
                 }
-            }
-
-            if (rightEye.RightEyeTargetAI() != null) {
-                transmissionAI = rightEye.RightEyeTargetAI();
-            }
-
-            if (rightEye.RightEyeTargetAudio() != null) {
-                transmissionAudio = rightEye.RightEyeTargetAudio();
-            }            
-
-            if (startingPrompt != null) {
-                currentLine = startingPrompt;
-            } else {
-                currentLine = noTargetPrompt;
             }
 
             AssembleAndDisplayCommsText();
@@ -374,13 +399,15 @@ public class CommsController : MonoBehaviour {
             //panels.ShowInfoBgdPanel(commsDisplay.cachedTextGenerator.lineCount);
 
         } else if (textActive && !textActivated) {
-
+            
             portrait.enabled = false;
             portraitFrame.enabled = false;
             dateScreen.EnableScreen(false);
             //camMaster.OverrideReticle(false);
             //scanner.reticle.enabled = true;
             scanner.HideReticleAndText(false);
+            isUsingStardater = false;
+            isInDatingChat = false;
 
             transmissionID = null;
             transmissionSpeech = null;
@@ -436,7 +463,11 @@ public class CommsController : MonoBehaviour {
             musicBox.PlayCommsNoSignal();
         }
         if (currentLine.hasAudio && currentLine.animatedSpeechLine != null && transmissionSpeech != null && transmissionAI != null) {
-            transmissionSpeech.PlayClipAndStartAnimatingFace(currentLine.animatedSpeechLine);
+
+            // If this is a dialogue line through the Stardater chat, use method which turns on the duplication of speech through the chat (so the sound is heard both live and through the chat--COOL)
+            if (isInDatingChat) { transmissionSpeech.PlayClipAndStartAnimatingFace(currentLine.animatedSpeechLine, true); }
+            else                { transmissionSpeech.PlayClipAndStartAnimatingFace(currentLine.animatedSpeechLine); }
+            
             transmissionAI.LookAtPerson(currentLine.lookDuration, FindObjectOfType<TeddyHead>().transform, currentLine.matchLookDurationToSpeechTime);
         }
 
@@ -597,6 +628,11 @@ public class CommsController : MonoBehaviour {
     }
 
     public void SelectSpecialOption() {
+
+        if (panels.IsCurrentSpecialFunctionStardater()) {
+            isUsingStardater = true;
+            textActivated = true;
+        }
         if (panels.IsCurrentSpecialFunctionFakeTed()) {
             SetFakeTedAsCurrentID();
             textActivated = true;
@@ -657,9 +693,15 @@ public class CommsController : MonoBehaviour {
         }
         else {
             if (responses[currentResponseNumber].isExitLine) {
-                textActivated = false;
-                camMaster.commsEnabled = false;
-                panels.NoSelection();
+                
+                if (isInDatingChat) {
+                    EndDatingChat();
+                }
+                else {
+                    textActivated = false;
+                    camMaster.commsEnabled = false;
+                    panels.NoSelection();
+                }
             }
             else {
                 currentLine = responses[currentResponseNumber].valuePrompt;
@@ -717,5 +759,33 @@ public class CommsController : MonoBehaviour {
         foreach (Action act in line.triggeredActions) {
             actCoord.TriggerAction(act);
         }
+    }
+
+
+    public void StartDatingChat(IDCharacter charID) {
+        if (textActivated && charID.stardaterProfile != null && charID.transform.GetComponent<TextAndSpeech>() != null) {
+
+            isInDatingChat = true;
+            transmissionAI = charID.transform.GetComponent<NPCIntelligence>();
+            if (charID.transform.GetComponent<AudioSource>() != null) { transmissionAudio = charID.transform.GetComponent<AudioSource>(); }
+            //transmissionAudio = dateScreen.transform.GetComponent<AudioSource>();
+            transmissionSpeech = charID.transform.GetComponent<TextAndSpeech>();
+            currentLine = charID.transform.GetComponent<TextAndSpeech>().openingStardaterLine;
+            textActive = false;
+            responseText.enabled = true;
+            
+        }
+    }
+
+    // This should kick back to using the comms window for the Stardater screen
+    public void EndDatingChat() {
+        isInDatingChat = false;
+        transmissionSpeech = null;
+        transmissionAI = null;
+
+        textActive = false;
+        panels.ShowInfoBgdPanelPromptOnly(1);
+
+        dateScreen.TedExitChat();
     }
 }

@@ -31,6 +31,11 @@ public abstract class ID : MonoBehaviour {
     public virtual bool AddedToEvidencePool { get => addedToEvidencePool; set => addedToEvidencePool = value; }
 
     [SerializeField]
+    protected bool addToDigestOnSight, addToDigestOnInteraction, isPersonForDigest, isPlaceForDigest, isThingForDigest;
+    public virtual bool AddToDigestOnSight { get => addToDigestOnSight; set => addToDigestOnSight = value; }
+    public virtual bool AddToDigestOnInteraction { get => addToDigestOnInteraction; set => addToDigestOnInteraction = value; }
+
+    [SerializeField]
     protected string relevantProjectName, relevantCrimeSceneName;
     public virtual string RelevantProjectName { get => relevantProjectName; set => relevantProjectName = value; }
     public virtual string RelevantCrimeSceneName { get => relevantCrimeSceneName; set => relevantCrimeSceneName = value; }
@@ -47,6 +52,11 @@ public abstract class ID : MonoBehaviour {
     // Acquired info
     public List<RequiredPassCode> codes;
     public List<RequiredKnowledge> knownFacts;
+    public List<DigestEntry> digestEntries;
+
+    // Meshes for Momentus trajectory analysis integration
+    public List<MeshRenderer> meshRends;
+    public List<SkinnedMeshRenderer> skinnedMeshRends;
 
     // Interactable parameters
     public float maxDistanceToActivate;
@@ -65,6 +75,7 @@ public abstract class ID : MonoBehaviour {
     protected InfoScan scanner;
     protected StatusPopup statusWindow;
     protected MailScreen mailManager;
+    protected DatingScreen dateScreen;
     protected PrisonManager prisonController;
     protected ActionSceneCoordinator actCoord;
     protected ProjectHandler projHandler;
@@ -88,6 +99,7 @@ public abstract class ID : MonoBehaviour {
         scanner = FindObjectOfType<InfoScan>();
         statusWindow = FindObjectOfType<StatusPopup>();
         mailManager = FindObjectOfType<MailScreen>();
+        dateScreen = FindObjectOfType<DatingScreen>();
         prisonController = FindObjectOfType<PrisonManager>();
         actCoord = FindObjectOfType<ActionSceneCoordinator>();
         projHandler = FindObjectOfType<ProjectHandler>();
@@ -107,6 +119,16 @@ public abstract class ID : MonoBehaviour {
         //}
 
         preventActionTrigger = false;
+
+
+        // If this is a Character and they have a Stardater profile, send the profile to the Dating Screen manager
+        if (this.GetType() == typeof(IDCharacter)) {
+            IDCharacter charID = (IDCharacter)this;
+
+            if (charID.makeProfileAvailable && charID.stardaterProfile != null) {
+                dateScreen.AddStardaterProfile(charID.stardaterProfile);
+            }
+        }
     }
 	
 	// Update is called once per frame

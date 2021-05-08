@@ -10,7 +10,7 @@ public class PanelsBottom : MonoBehaviour
     public RawImage responseSelectionBar, openingPanelLoadingBar;
     public List<Texture> openingPanelLoadingFrames;
 
-    public RawImage FakeTedFunctionIcon, callHQFunctionIcon, callStrikeFunctionIcon, playMusicFunctionIcon;
+    public RawImage FakeTedFunctionIcon, callHQFunctionIcon, callStrikeFunctionIcon;
     public float specialFunctionsAvailableAlpha, specialFunctionsUnavailAlpha, specialFunctionsAlphaChange;
 
     public Text promptText, responseText;
@@ -235,19 +235,21 @@ public class PanelsBottom : MonoBehaviour
         FakeTedFunctionIcon.enabled = yesOrNo;
         callHQFunctionIcon.enabled = yesOrNo;
         callStrikeFunctionIcon.enabled = yesOrNo;
-        playMusicFunctionIcon.enabled = yesOrNo;
 
         if (!yesOrNo) {
             FakeTedFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
             callHQFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
             callStrikeFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
-            playMusicFunctionIcon.transform.GetChild(0).GetComponent<Text>().enabled = false;
         }
     }
 
     public void SelectSpecialFunction() {
         ActivationMode = ActivationState.Closed;
         HideInfoBgdPanel();
+    }
+
+    public bool IsCurrentSpecialFunctionStardater() {
+        return (availableFunctionsIcons[specialFunctionsCurrentIndex] == callHQFunctionIcon);
     }
 
     public bool IsCurrentSpecialFunctionFakeTed() {
@@ -299,9 +301,9 @@ public class PanelsBottom : MonoBehaviour
             availableFunctionsIcons.Add(callHQFunctionIcon);
             callHQFunctionIcon.color = new Color(callHQFunctionIcon.color.r, callHQFunctionIcon.color.g, callHQFunctionIcon.color.b, specialFunctionsAvailableAlpha);
         }
-        else {
-            callHQFunctionIcon.color = new Color(callHQFunctionIcon.color.r, callHQFunctionIcon.color.g, callHQFunctionIcon.color.b, specialFunctionsUnavailAlpha);
-        }
+        //else {
+        //    callHQFunctionIcon.color = new Color(callHQFunctionIcon.color.r, callHQFunctionIcon.color.g, callHQFunctionIcon.color.b, specialFunctionsUnavailAlpha);
+        //}
 
         if (FindObjectOfType<StrikePlaneCaller>().CheckAvailability()) {
             availableFunctionsIcons.Add(callStrikeFunctionIcon);
@@ -309,14 +311,6 @@ public class PanelsBottom : MonoBehaviour
         }
         else {
             callStrikeFunctionIcon.color = new Color(callStrikeFunctionIcon.color.r, callStrikeFunctionIcon.color.g, callStrikeFunctionIcon.color.b, specialFunctionsUnavailAlpha);
-        }
-        
-        if (1 == 1) {
-            availableFunctionsIcons.Add(playMusicFunctionIcon);
-            playMusicFunctionIcon.color = new Color(playMusicFunctionIcon.color.r, playMusicFunctionIcon.color.g, playMusicFunctionIcon.color.b, specialFunctionsAvailableAlpha);
-        }
-        else {
-            playMusicFunctionIcon.color = new Color(playMusicFunctionIcon.color.r, playMusicFunctionIcon.color.g, playMusicFunctionIcon.color.b, specialFunctionsUnavailAlpha);
         }
         
     }
@@ -454,6 +448,9 @@ public class PanelsBottom : MonoBehaviour
 
         panelTop.rectTransform.anchoredPosition = panelBottom.rectTransform.anchoredPosition +
                                                         new Vector2(0, ((panelMiddleHeight) + (panelTopHeight / 2) + (panelBottomHeight / 2)));
+
+        // This is necessary for showing the Stardater screen
+        AlignImagesWithTop();
     }
 
     public void MoveSelectionBar(float yPosRelToDefaultBottom, int nextNumOfLines) {

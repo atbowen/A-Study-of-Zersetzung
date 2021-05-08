@@ -11,4 +11,6 @@ public class NMRRefPeak
     public float shift;
     [Range(0.0f, 30.0f)]
     public float intensity;
+
+    public Texture speciesRefImage;
 }

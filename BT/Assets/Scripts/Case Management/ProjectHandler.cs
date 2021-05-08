@@ -127,7 +127,7 @@ public class ProjectHandler : MonoBehaviour {
 
     public int GetProjectFileIndexFromName(string name) {
         for (int i = 0; i < openProjects.Count; i++) {
-            if (openProjects[i].projectName == name) {
+            if (openProjects[i].GetProjectTitle() == name) {
                 return i;
             }
         }

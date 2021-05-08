@@ -69,7 +69,7 @@ public class CameraMaster : MonoBehaviour {
     // Public use timers
     public bool leftEyeAvailable;
     public float commsWindowSpecialOptionsButtonHoldTime, commsWindowButtonHoldRefTime;
-    public float keyTimer, keyTimerRef;
+    public float keyTimer, stardaterWaitTimeBetweenButtonPresses, keyTimerRef;
     public bool triggerPressed;
 
     // Eye effects
@@ -96,6 +96,7 @@ public class CameraMaster : MonoBehaviour {
     private Transform headd;
     private RenderTexture headdRT;
     private CommsController commsControl;
+    private DatingScreen dateScreen;
     private ToolSelector toolSelect;
     private MusicPlayer musicBox;                                                                
     private Collider rightEyeColl;
@@ -177,6 +178,7 @@ public class CameraMaster : MonoBehaviour {
         reticleImg = GameObject.Find("Reticle").GetComponent<RawImage>();
         commsImg = commsEnter.transform.parent.GetComponent<RawImage>();
         commsControl = FindObjectOfType<CommsController>();
+        dateScreen = FindObjectOfType<DatingScreen>();
         toolSelect = FindObjectOfType<ToolSelector>();
         statusWindow = FindObjectOfType<StatusPopup>();
         sapMonitor = FindObjectOfType<SapPoisonLevel>();
@@ -416,11 +418,20 @@ public class CameraMaster : MonoBehaviour {
             gamePaused = !gamePaused;
             keyTimerRef = Time.time;                                                                            //
             if (gamePaused) {
-                wkDesk.CallDeskOpenSound();
+                wkDesk.ShowWorkDesk(true);
+                //wkDesk.CallDeskOpenSound();
                 // If pulling up the pause/Work Desk screen system and it goes straight to the Desk-Status screen, restart the status text effects
-                FindObjectOfType<DeskScreen>().InitializeStatusTexts();
+                //FindObjectOfType<DeskScreen>().InitializeStatusTexts();
+
+                bodyCamera.enabled = false;
+                rightEyeCam.enabled = false;
             }
-            else            { wkDesk.CallDeskCloseSound(); }
+            else            { //wkDesk.CallDeskCloseSound(); 
+                wkDesk.ShowWorkDesk(false);
+
+                bodyCamera.enabled = true;
+                rightEyeCam.enabled = true;
+            }
 
         }                                                                                                       //
 
@@ -434,14 +445,15 @@ public class CameraMaster : MonoBehaviour {
 
             // Toggle comms
             if ((Input.GetButtonDown("Square Button")) && Time.time - keyTimerRef > keyTimer && !triggerPressed) {
-                commsEnabled = !commsEnabled;
-                if (commsEnabled) {
+                if (!commsEnabled) {
                     view.SwitchAnimationStateToIdle();
                     commsControl.OpenCommsWindow();
+                    commsEnabled = true;
                 }
                 else {
                     commsControl.textActivated = false;
                     commsControl.ClearCommsWindow();
+                    commsEnabled = false;
                 }
 
                 commsWindowButtonHoldRefTime = Time.time;
@@ -715,39 +727,110 @@ public class CameraMaster : MonoBehaviour {
                                                                                                             //
                     commsEnter.textComponent.text = "";                                                     //
                     englishOrSolar = !englishOrSolar;                                                       //
-                }                
-
-                if (commsControl.ReadyForSelection()) {
-                    // Move response selector up, can hold button to scroll
-                    if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") > 0)) ||
-                            (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") > 0))) {
-                        reticleReleased = false;
-                        commsControl.MoveResponseSelectorBarUp();
-                        reticlePressTime = Time.time;
-                    }
-
-                    // Move response selector down, can hold button to scroll
-                    if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") < 0)) ||
-                            (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") < 0))) {
-                        reticleReleased = false;
-                        commsControl.MoveResponseSelectorBarDown();
-                        reticlePressTime = Time.time;
-                    }
-
-                    // If the axis values are low enough, the reticle button is released and can be pressed again
-                    if (Mathf.Abs(Input.GetAxis("D-Pad Up Down")) < 0.001f && Mathf.Abs(Input.GetAxis("Vertical")) < 0.001f) {
-                        reticleReleased = true;
-                    }
-
-                    if (Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
-                        commsControl.SelectResponse();
-                        keyTimerRef = Time.time;
-                    }
                 }
 
-                // Show full Prompt text before it's fully unravelled by hitting the button
-                if (commsControl.CanSkipUnravelling() && Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
-                    commsControl.SkipUnravelling();
+                if (dateScreen.StardaterIsActive()) {
+
+                    if ((Time.time - keyTimerRef > stardaterWaitTimeBetweenButtonPresses) && !dateScreen.TedIsInChat()) {
+
+                        if (Input.GetButtonDown("X Button")) {
+                            dateScreen.PressX();
+                            keyTimerRef = Time.time;
+                        }
+                        if (Input.GetButtonDown("Circle Button")) {
+                            dateScreen.PressCircle();
+                            keyTimerRef = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Horizontal") < -0.1) {
+                            dateScreen.PressLeftLS();
+                            keyTimerRef = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Horizontal") > 0.1) {
+                            dateScreen.PressRightLS();
+                            keyTimerRef = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Vertical") < -0.1) {
+                            dateScreen.PressDownLS();
+                            keyTimerRef = Time.time;
+                        }
+                        if (Input.GetAxis("Left Joystick Vertical") > 0.1) {
+                            dateScreen.PressUpLS();
+                            keyTimerRef = Time.time;
+                        }
+                    }
+
+                    if (dateScreen.TedIsInChat()) {
+
+                        if (commsControl.ReadyForSelection()) {
+                            // Move response selector up, can hold button to scroll
+                            if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") > 0)) ||
+                                    (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") > 0))) {
+                                reticleReleased = false;
+                                commsControl.MoveResponseSelectorBarUp();
+                                reticlePressTime = Time.time;
+                            }
+
+                            // Move response selector down, can hold button to scroll
+                            if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") < 0)) ||
+                                    (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") < 0))) {
+                                reticleReleased = false;
+                                commsControl.MoveResponseSelectorBarDown();
+                                reticlePressTime = Time.time;
+                            }
+
+                            // If the axis values are low enough, the reticle button is released and can be pressed again
+                            if (Mathf.Abs(Input.GetAxis("D-Pad Up Down")) < 0.001f && Mathf.Abs(Input.GetAxis("Vertical")) < 0.001f) {
+                                reticleReleased = true;
+                            }
+
+                            if (Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
+                                commsControl.SelectResponse();
+                                keyTimerRef = Time.time;
+                            }
+                        }
+
+                        // Show full Prompt text before it's fully unravelled by hitting the button
+                        if (commsControl.CanSkipUnravelling() && Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
+                            commsControl.SkipUnravelling();
+                        }
+
+                    }
+
+                }
+                else {
+
+                    if (commsControl.ReadyForSelection()) {
+                        // Move response selector up, can hold button to scroll
+                        if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") > 0)) ||
+                                (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") > 0))) {
+                            reticleReleased = false;
+                            commsControl.MoveResponseSelectorBarUp();
+                            reticlePressTime = Time.time;
+                        }
+
+                        // Move response selector down, can hold button to scroll
+                        if (((Time.time - reticlePressTime > 0.5) || reticleReleased) && ((Input.GetAxis("D-Pad Up Down") < 0)) ||
+                                (((Time.time - reticlePressTime > 0.3) || reticleReleased) && (Input.GetAxis("Vertical") < 0))) {
+                            reticleReleased = false;
+                            commsControl.MoveResponseSelectorBarDown();
+                            reticlePressTime = Time.time;
+                        }
+
+                        // If the axis values are low enough, the reticle button is released and can be pressed again
+                        if (Mathf.Abs(Input.GetAxis("D-Pad Up Down")) < 0.001f && Mathf.Abs(Input.GetAxis("Vertical")) < 0.001f) {
+                            reticleReleased = true;
+                        }
+
+                        if (Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
+                            commsControl.SelectResponse();
+                            keyTimerRef = Time.time;
+                        }
+                    }
+
+                    // Show full Prompt text before it's fully unravelled by hitting the button
+                    if (commsControl.CanSkipUnravelling() && Time.time - keyTimerRef > keyTimer && Input.GetButtonDown("X Button")) {
+                        commsControl.SkipUnravelling();
+                    }
                 }
             }
         }
@@ -797,11 +880,11 @@ public class CameraMaster : MonoBehaviour {
             anim.speed = 0;                                                 // Freeze Ted's animations
             animHead.speed = 0;                                             //
             pauseScreen.enabled = true;                                     // Enable pause screen
-            wkDesk.deskEnabled = true;                                      // Open SPRING
+            //wkDesk.deskEnabled = true;                                      // Open SPRING
         } else {
             rigid.constraints &= ~RigidbodyConstraints.FreezePosition;      // Disable position constraints
             pauseScreen.enabled = false;                                    // Disable pause screen
-            wkDesk.deskEnabled = false;                                     // Close SPRING
+            //wkDesk.deskEnabled = false;                                     // Close SPRING
         }
     }
 
